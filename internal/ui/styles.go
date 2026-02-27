@@ -5,31 +5,44 @@ import "github.com/charmbracelet/lipgloss"
 // -- Palette ----------
 
 const (
-	ColorBlack   = "#000000"
-	ColorGold    = "#c8a951"
-	ColorGoldDim = "#7a6535"
-	ColorGreen   = "#98c379"
-	ColorBlue    = "#61afef"
-	ColorRed     = "#e06c75"
-	ColorOrange  = "#d19a66"
+	ColorBlack      = "#000000"
+	ColorGold       = "#c8a951"
+	ColorGoldDim    = "#7a6535"
+	ColorGoldDark   = "#3d2c1f"
+	ColorGreen      = "#57a854"
+	ColorGreenLight = "#98c379"
+	ColorGreenDark  = "#2e3a4d"
+	ColorBlue       = "#3b98d4"
+	ColorBlueDark   = "#2e3a4d"
+	ColorPink       = "#ff66b2"
+	ColorPurple     = "#b49dd8"
+	ColorPurpleDark = "#373349"
+	ColorGrey       = "#8a93b2"
+	ColorGreyDark   = "#2a2b3d"
+	ColorRed        = "#c94f4f"
+	ColorRedLight   = "#e06c75"
+	ColorOrange     = "#d19a66"
 
 	ColorBg      = "#13141a" // default background
 	ColorBgInput = "#2a2b3d" // text boxes
-	ColorBgPanel = "#1e2030" // panel fill
-	ColorBorder  = "#2a2b3d" // panel borders
-	// ColorBorder = ColorGreen // panel borders
 
-	ColorText       = "#abb2bf"    // main text
-	ColorTextLight  = "#90969f"    // main text light
-	ColorTextDim    = "#3e4451"    // main text dimmed
-	ColorTextDark   = "#151516"    // main text dimmed
-	ColorMuted      = "#4b5263"    // help / info
-	ColorPrimary    = ColorGold    // primary accent
-	ColorPrimaryDim = ColorGoldDim // primary accent dimmed
-	ColorSecondary  = ColorBlue    // secondary accent
-	ColorPositive   = ColorGreen   // positive values
-	ColorWarning    = ColorRed     // errors / warnings
-	ColorHighlight  = ColorOrange  // keybind highlights
+	ColorBorder = "#2a2b3d" // panel borders
+
+	ColorText         = "#abb2bf"       // main text
+	ColorTextLight    = "#90969f"       // main text light
+	ColorTextDim      = "#3e4451"       // main text dimmed
+	ColorTextDark     = "#151516"       // main text dimmed
+	ColorMuted        = "#4b5263"       // help / info
+	ColorPrimary      = ColorGold       // primary accent
+	ColorPrimaryDim   = ColorGoldDim    // primary accent dimmed
+	ColorPrimaryDark  = ColorGoldDark   // primary accent dark
+	ColorSecondary    = ColorBlue       // secondary accent
+	ColorSecondaryDim = ColorBlueDark   // secondary accent dimmed
+	ColorRare         = ColorPink       // rare accent
+	ColorPositive     = ColorGreenLight // positive values
+	ColorPositiveDim  = ColorGreenDark  // positive values dimmed
+	ColorWarning      = ColorRedLight   // errors / warnings
+	ColorHighlight    = ColorOrange     // keybind highlights
 )
 
 // -- Base Styles ----------
@@ -72,7 +85,7 @@ var (
 			Foreground(lipgloss.Color(ColorPrimaryDim)).
 			Bold(true)
 
-	HomeVersionStyle = lipgloss.NewStyle().
+	HomeSubTitleStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorMuted)).
 				Background(lipgloss.Color(ColorBg)).
 				Italic(true)
@@ -108,46 +121,58 @@ var (
 var (
 	SidebarItem = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorText)).
-			Background(lipgloss.Color(ColorBg)).
-			PaddingLeft(2)
+			Background(lipgloss.Color(ColorBg))
 
 	SidebarItemSelected = lipgloss.NewStyle().
 				Foreground(lipgloss.Color(ColorBg)).
 				Background(lipgloss.Color(ColorPrimary)).
 				Bold(true).
-				PaddingLeft(1).
 				PaddingRight(1)
 
-	SidebarHeader = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorMuted)).
-			Bold(true).
-			PaddingLeft(1).
-			MarginBottom(1)
+	SidebarItemMaxed = lipgloss.NewStyle().
+				Foreground(lipgloss.Color(ColorPrimary)).
+				Background(lipgloss.Color(ColorBg))
+
+	SidebarItem200M = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorRare)).
+			Background(lipgloss.Color(ColorBg)).
+			Faint(true)
 )
 
 // -- XP Stats Panel ----------
 
 var (
+	StatHeader = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorMuted)).
+			Bold(true).
+			MarginBottom(1)
+
 	StatLabel = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorSecondary)).
+			Foreground(lipgloss.Color(ColorPrimary)).
+			Background(lipgloss.Color(ColorBg)).
+			Bold(true).
+			Italic(true).
+			Faint(true).
+			Width(18)
+
+	StatLabelMode = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(ColorText)).
 			Background(lipgloss.Color(ColorBg)).
 			Width(18)
 
 	StatValue = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorPositive)).
+			Foreground(lipgloss.Color(ColorPrimary)).
 			Background(lipgloss.Color(ColorBg)).
-			Bold(true)
+			Bold(true).
+			Italic(true).
+			Faint(true)
+
+	StatValueMode = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorBg))
 
 	StatValueDim = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorMuted))
-
-	XPBarFilled = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorPrimary)).
-			Background(lipgloss.Color(ColorPrimary))
-
-	XPBarEmpty = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorBorder)).
-			Background(lipgloss.Color(ColorBorder))
+			Foreground(lipgloss.Color(ColorMuted)).
+			Background(lipgloss.Color(ColorBg))
 )
 
 // -- Image ----------
@@ -161,29 +186,45 @@ var (
 // -- Bottom Status Bar ----------
 
 var (
-	StatusBar = lipgloss.NewStyle().
-			Background(lipgloss.Color(ColorBgPanel)).
-			Foreground(lipgloss.Color(ColorMuted))
-
 	StatusKey = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorHighlight)).
-			Background(lipgloss.Color(ColorBgPanel)).
-			Bold(true)
+			Foreground(lipgloss.Color(ColorTextLight)).
+			Background(lipgloss.Color(ColorBg))
 
 	StatusVal = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorText)).
-			Background(lipgloss.Color(ColorBgPanel))
-
-	StatusTab = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorMuted)).
-			Background(lipgloss.Color(ColorBgPanel)).
-			Padding(0, 1)
+			Background(lipgloss.Color(ColorBg))
 
-	StatusTabActive = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorBg)).
-			Background(lipgloss.Color(ColorPrimary)).
-			Bold(true).
-			Padding(0, 1)
+	StatusLine1 = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorBg)).
+			Foreground(lipgloss.Color(ColorMuted))
+
+	StatusLine2 = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorBg)).
+			Foreground(lipgloss.Color(ColorMuted))
+
+	StatusBlock = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorPurpleDark)).
+			Foreground(lipgloss.Color(ColorPurple))
+
+	StatusBlockInfo = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorPrimaryDark)).
+			Foreground(lipgloss.Color(ColorPrimary))
+
+	StatusBlockMode1 = lipgloss.NewStyle().
+				Background(lipgloss.Color(ColorSecondaryDim)).
+				Foreground(lipgloss.Color(ColorSecondary))
+
+	StatusBlockMode2 = lipgloss.NewStyle().
+				Background(lipgloss.Color(ColorPositiveDim)).
+				Foreground(lipgloss.Color(ColorPositive))
+
+	StatusBlockMuted = lipgloss.NewStyle().
+				Background(lipgloss.Color(ColorGreyDark)).
+				Foreground(lipgloss.Color(ColorGrey))
+
+	StatusError = lipgloss.NewStyle().
+			Background(lipgloss.Color(ColorBg)).
+			Foreground(lipgloss.Color(ColorWarning))
 
 	// Error text inside panels
 	ErrorStyle = lipgloss.NewStyle().

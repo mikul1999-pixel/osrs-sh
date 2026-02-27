@@ -20,14 +20,22 @@ type command struct {
 
 var commands = []command{
 	{"/xp", "skill xp calculator", "2", TabXP},
-	{"/monster", "monster stats & drops", "3", TabMonster},
-	{"/player", "player lookup", "4", TabPlayer},
-	{"/item", "item info & ge price", "5", TabItem},
+	{"/npc", "monster stats & drops", "3", TabMonster},
+	{"/item", "item info & ge price", "4", TabItem},
+	{"/rsn", "player lookup", "5", TabPlayer},
 }
 
 // ASCII logo
 // Upper half bright, lower half dimmed
 var logoLines = render.GetLogo()
+
+// HelpLine is the hint at the bottom of the text input
+type HelpLine struct {
+	Hint      string
+	BeforeCmd string
+	Command   string
+	AfterCmd  string
+}
 
 // HomeModel is the home screen tab.
 type HomeModel struct {
@@ -38,9 +46,12 @@ type HomeModel struct {
 }
 
 func NewHomeModel() HomeModel {
-	rsn := "empty"
-	rsnText := BgInput.Foreground(lipgloss.Color(ColorTextLight)).Render("rsn ") +
-		BgInput.Foreground(lipgloss.Color(ColorMuted)).Render(strings.ToLower(rsn)+" ")
+	helpText := RenderHelpLine(BgInput, HelpLine{
+		Hint:      "● hint",
+		BeforeCmd: "run",
+		Command:   "/rsn <name>",
+		AfterCmd:  " ",
+	})
 
 	input := components.NewInput(components.InputOptions{
 		Placeholder: "type a command...",
@@ -54,7 +65,7 @@ func NewHomeModel() HomeModel {
 		PlaceholderStyle: InputPlaceholder,
 		CursorStyle:      InputCursor,
 		ShowBottomRow:    true,
-		BottomRight:      rsnText,
+		BottomRight:      helpText,
 		PaddingTop:       1,
 		PaddingMiddle:    0,
 		PaddingBottom:    0,
@@ -84,6 +95,19 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 			m.err = err
 			if nav != nil {
 				m.input.SetValue("")
+				// lookup /rsn
+				if nav.Tab == TabPlayer && nav.Query != "" {
+					helpText := RenderHelpLine(BgInput, HelpLine{
+						Hint:      "● hint",
+						BeforeCmd: "begin typing",
+						Command:   "/",
+						AfterCmd:  " ",
+					})
+					m.input.SetBottomRight(helpText)
+					return m, func() tea.Msg {
+						return LoadPlayerMsg{RSN: nav.Query}
+					}
+				}
 				return m, func() tea.Msg { return *nav }
 			}
 			return m, nil
@@ -118,7 +142,7 @@ func (m HomeModel) parseCommand(raw string) (*NavigateMsg, string) {
 			return &NavigateMsg{Tab: c.targetTab, Query: query}, ""
 		}
 	}
-	return nil, fmt.Sprintf("unknown command %q — try /xp, /monster, /player, /item", slug)
+	return nil, fmt.Sprintf("unknown command %q — try /xp, /npc, /item, /rsn", slug)
 }
 
 func (m HomeModel) View() string {
@@ -143,10 +167,15 @@ func (m HomeModel) View() string {
 	}
 	logo := Bg.Width(m.width).Align(lipgloss.Center).Render(logoBlock.String())
 
-	versionPadding := Space(2)
-	versionName := "v0.1.1"
+	subTitlePadding := Space(2)
+	subTitleLabel := GetCwdDisplay(CwdOptions{
+		ShortenHome:   true,
+		LastOnly:      true,
+		RootLabel:     "/",
+		FallbackValue: "~/?",
+	})
 	subTitle := Bg.Width(m.width/2 + 18).Align(lipgloss.Right).
-		Render(HomeVersionStyle.Render(versionName + versionPadding))
+		Render(HomeSubTitleStyle.Render(subTitleLabel + subTitlePadding))
 
 	sections = append(sections, "\n\n", logo, "\n", subTitle, "\n\n\n")
 
@@ -163,7 +192,7 @@ func (m HomeModel) View() string {
 		cmdLines.WriteString(cmdCol + Space(2) + descCol + Space(2) + keyCol + Space(2) + tabCol + "\n")
 	}
 	cmdBlock := Bg.Width(m.width).Align(lipgloss.Center).Render(cmdLines.String())
-	sections = append(sections, cmdBlock, "\n")
+	sections = append(sections, cmdBlock, "\n\n")
 
 	// Shared container for input elements
 	inputColumn := Bg.Width(m.width / 2).Align(lipgloss.Left)
@@ -174,11 +203,7 @@ func (m HomeModel) View() string {
 	sections = append(sections, inputRow)
 
 	// -- Input info ----------
-	info := HelpStyle.Render("enter") + HelpStyleMuted.Render(" run") +
-		Space(3) +
-		HelpStyle.Render("ctrl+t") + HelpStyleMuted.Render(" themes") +
-		Space(3) +
-		HelpStyle.Render("ctrl+p") + HelpStyleMuted.Render(" commands")
+	info := HelpStyle.Render("enter") + HelpStyleMuted.Render(" run")
 
 	infoRow := Bg.Width(m.width).Align(lipgloss.Center).PaddingLeft(2).
 		Render(inputColumn.Render(info))
@@ -206,7 +231,27 @@ func (m HomeModel) View() string {
 		Render(content)
 }
 
-func Space(rpt int) string {
-	space := strings.Repeat(" ", rpt)
-	return Bg.Render(space)
+// -- Helpers ----------
+
+func RenderHelpLine(bg lipgloss.Style, h HelpLine) string {
+	hintStyle := bg.Foreground(lipgloss.Color(ColorPrimary)).Faint(true)
+	cmdStyle := bg.Foreground(lipgloss.Color(ColorTextLight)).Faint(true)
+	textStyle := bg.Foreground(lipgloss.Color(ColorMuted))
+
+	var parts []string
+
+	if h.Hint != "" {
+		parts = append(parts, hintStyle.Render(h.Hint))
+	}
+	if h.BeforeCmd != "" {
+		parts = append(parts, textStyle.Render(h.BeforeCmd))
+	}
+	if h.Command != "" {
+		parts = append(parts, cmdStyle.Render(h.Command))
+	}
+	if h.AfterCmd != "" {
+		parts = append(parts, textStyle.Render(h.AfterCmd))
+	}
+
+	return strings.Join(parts, SpaceInput(1))
 }

@@ -140,7 +140,7 @@ func (m *Input) Reset() {
 	m.cursor = 0
 }
 
-// SetPlaceholder updates the left bottom row content function
+// SetPlaceholder updates the placeholder string
 func (m *Input) SetPlaceholder(s string) {
 	m.opts.Placeholder = s
 }
@@ -153,6 +153,16 @@ func (m *Input) SetBottomLeft(s string) {
 // SetBottomRight updates the right bottom row content function
 func (m *Input) SetBottomRight(s string) {
 	m.opts.BottomRight = s
+}
+
+// SetAccent updates the accent bar color (focused)
+func (m *Input) SetAccentFocused(c lipgloss.Color) {
+	m.opts.AccentFocused = c
+}
+
+// SetAccent updates the accent bar color (unfocused)
+func (m *Input) SetAccentUnfocused(c lipgloss.Color) {
+	m.opts.AccentUnfocused = c
 }
 
 // -- Bubble Tea interface ----------

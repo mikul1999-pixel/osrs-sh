@@ -10,7 +10,7 @@ type Preset struct {
 
 var Presets = []Preset{
 	{
-		Name:   "Quest Cape",
+		Name:   "quest cape",
 		Hotkey: "q",
 		Targets: [24]int{
 			50, // ATK
@@ -40,7 +40,7 @@ var Presets = []Preset{
 		},
 	},
 	{
-		Name:   "Diary Cape",
+		Name:   "diary cape",
 		Hotkey: "e",
 		Targets: [24]int{
 			42, // ATK
@@ -70,7 +70,7 @@ var Presets = []Preset{
 		},
 	},
 	{
-		Name:   "Master Clues",
+		Name:   "master clues",
 		Hotkey: "r",
 		Targets: [24]int{
 			78, // ATK  (Dragon sq shield equip)

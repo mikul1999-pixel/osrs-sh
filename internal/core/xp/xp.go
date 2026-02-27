@@ -18,7 +18,7 @@ func LevelToXP(level int) int {
 
 // XPToLevel returns the level for a given XP
 func XPToLevel(totalXP int) int {
-	for lvl := 98; lvl >= 1; lvl-- {
+	for lvl := 99; lvl >= 1; lvl-- {
 		if totalXP >= LevelToXP(lvl) {
 			return lvl
 		}
@@ -47,4 +47,13 @@ func XPToNextLevel(currentXP int) int {
 		return 0
 	}
 	return XPBetween(currentXP, LevelToXP(currentLevel+1))
+}
+
+// XPToTotalLevel returns total level given an array of xp for each skill
+func XPToTotalLevel(xpArr [24]int) int {
+	total := 0
+	for _, rawXP := range xpArr {
+		total += XPToLevel(rawXP)
+	}
+	return total
 }
