@@ -12,6 +12,11 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
+// Theme selection
+var ActiveTheme Theme
+
+// var ActiveTheme = loadThemeFromConfig("modern") // manual for now. change to cfg.Theme later
+
 // Tab indices
 const (
 	TabHome    = 0
@@ -94,14 +99,18 @@ type AppModel struct {
 	activePreset  string
 	statusContext StatusContext
 	palette       PaletteModel
+	theme         Theme
 }
 
 func NewAppModel() AppModel {
+	t := loadThemeFromConfig("modern") // manual for now. change to cfg.Theme later
+	ActiveTheme = t
 	return AppModel{
 		activeTab: TabHome,
 		home:      NewHomeModel(),
 		xp:        NewXPModel(),
 		palette:   NewPaletteModel(),
+		theme:     t,
 	}
 }
 
@@ -110,13 +119,20 @@ func NewAppModel() AppModel {
 func (a AppModel) Init() tea.Cmd {
 	return tea.Batch(
 		a.home.Init(),
-		a.palette.Init(),
 	)
 }
 
 // -- Update ----------
 
 func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	// Let modal process messages
+	if a.palette.visible {
+		a.palette, cmd = a.palette.Update(msg)
+		return a, cmd
+	}
+
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
@@ -140,7 +156,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.player.RSN = msg.RSN
 		a.spinner = components.NewSpinner().
 			SetFrames(components.SpinnerBraille).
-			SetStyle(StatusLine1)
+			SetStyle(ActiveTheme.StatusLine())
 		return a, tea.Batch(loadPlayerCmd(msg.RSN), a.spinner.Start())
 
 	case PlayerLoadedMsg:
@@ -212,14 +228,9 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case tea.KeyMsg: // tea.Keymsg handles both press and release, tea.KeyPressMsg for press only
-		if a.palette.visible {
-			var cmd tea.Cmd
-			a.palette, cmd = a.palette.Update(msg)
-			return a, cmd
-		}
 		switch msg.String() {
 		case "ctrl+p":
-			a.palette = a.palette.Open()
+			a.palette, _ = a.palette.Open()
 			return a, nil
 
 		// Global tab switching
@@ -266,9 +277,23 @@ func (a AppModel) updateActiveTab(msg tea.Msg) (tea.Model, tea.Cmd) {
 // -- View ----------
 
 func (a AppModel) View() tea.View {
+	// Set background colors to dim style if overlay
+	if a.palette.visible {
+		ActiveTheme = a.theme.Dimmed()
+		defer func() { ActiveTheme = a.theme }()
+	}
+
 	content := a.activeTabView()
 	statusBar := a.renderStatusBar()
 	full := lipgloss.JoinVertical(lipgloss.Left, content, statusBar)
+
+	// Force full width & height
+	full = lipgloss.Place(
+		a.width, a.height,
+		lipgloss.Left, lipgloss.Top,
+		full,
+		lipgloss.WithWhitespaceBackground(ActiveTheme.Bg),
+	)
 
 	// Overlay command dropdown if active
 	if a.activeTab == TabHome {
@@ -281,20 +306,21 @@ func (a AppModel) View() tea.View {
 	if a.toast != nil && a.toast.Visible() {
 		toastStr := a.toast.View()
 		toastW := lipgloss.Width(toastStr)
-		toastH := lipgloss.Height(toastStr)
 		x := a.width - toastW - 1
 		full = components.PlaceOverlay(x, 1, toastStr, full, a.width)
-		_ = toastH
 	}
 
 	// Overlay command palette if visible
 	if a.palette.visible {
-		full = applyDim(full, a.width, a.height)
 		modal := a.palette.View()
-		full = lipgloss.Place(
-			a.width, a.height,
-			lipgloss.Center, lipgloss.Center,
+
+		// center everything
+		full = components.PlaceOverlay(
+			(a.width-lipgloss.Width(modal))/2,
+			(a.height-lipgloss.Height(modal))/2,
 			modal,
+			full,
+			a.width,
 		)
 	}
 
@@ -302,11 +328,11 @@ func (a AppModel) View() tea.View {
 		a.width, a.height,
 		lipgloss.Left, lipgloss.Top,
 		full,
-		lipgloss.WithWhitespaceBackground(lipgloss.Color(ColorBg)),
+		lipgloss.WithWhitespaceBackground(lipgloss.Color(ActiveTheme.Bg)),
 	)
 	v := tea.NewView(place)
 	v.AltScreen = true
-	v.BackgroundColor = lipgloss.Color(ColorBg)
+	v.BackgroundColor = lipgloss.Color(ActiveTheme.Bg)
 	v.WindowTitle = "osrs-sh"
 	return v
 }
@@ -328,7 +354,7 @@ func (a AppModel) placeholderView() string {
 	return lipgloss.NewStyle().
 		Width(a.width).
 		Height(a.contentHeight()).
-		Foreground(lipgloss.Color(ColorMuted)).
+		Foreground(lipgloss.Color(ActiveTheme.Muted)).
 		Render(msg)
 }
 
@@ -358,27 +384,16 @@ func loadPlayerCmd(rsn string) tea.Cmd {
 
 // -- Helpers ----------
 
-// applyDim overlays a dimmed styling to create a transparency effect
-func applyDim(base string, w, h int) string {
-	dim := lipgloss.NewStyle().
-		// Background(lipgloss.Color(ColorBgDim)).
-		Width(w).
-		Height(h - 2).
-		Render("")
-	// place dim layer at 0,0 — covers the full base
-	return components.PlaceOverlay(0, 0, dim, base, w)
-}
-
 // -- General ----------
 
 func Space(rpt int) string {
 	space := strings.Repeat(" ", rpt)
-	return Bg.Render(space)
+	return ActiveTheme.Bg_().Render(space)
 }
 
 func SpaceInput(rpt int) string {
 	space := strings.Repeat(" ", rpt)
-	return BgInput.Render(space)
+	return ActiveTheme.BgInput_().Render(space)
 }
 
 func getCwdDisplay(opts CwdOptions) string {

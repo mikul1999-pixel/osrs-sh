@@ -44,6 +44,7 @@ type InputOptions struct {
 	PaddingBottom    int
 	Commands         []InputCommand
 	DropdownVisible  int // max visible rows
+	DropdownAccent   lipgloss.Color
 	ForceDropdown    bool
 }
 
@@ -157,30 +158,19 @@ func (m *Input) RefreshDropdown() {
 	m.syncDropdown()
 }
 
-// SetPlaceholder updates the placeholder string
-func (m *Input) SetPlaceholder(s string) {
-	m.opts.Placeholder = s
-}
+// -- Update opts ----------
 
-// SetBottomLeft updates the left bottom row content function
-func (m *Input) SetBottomLeft(s string) {
-	m.opts.BottomLeft = s
-}
-
-// SetBottomRight updates the right bottom row content function
-func (m *Input) SetBottomRight(s string) {
-	m.opts.BottomRight = s
-}
-
-// SetAccent updates the accent bar color (focused)
-func (m *Input) SetAccentFocused(c lipgloss.Color) {
-	m.opts.AccentFocused = c
-}
-
-// SetAccent updates the accent bar color (unfocused)
-func (m *Input) SetAccentUnfocused(c lipgloss.Color) {
-	m.opts.AccentUnfocused = c
-}
+func (m *Input) SetPlaceholder(s string)              { m.opts.Placeholder = s }
+func (m *Input) SetBottomLeft(s string)               { m.opts.BottomLeft = s }
+func (m *Input) SetBottomRight(s string)              { m.opts.BottomRight = s }
+func (m *Input) SetAccentFocused(c lipgloss.Color)    { m.opts.AccentFocused = c }
+func (m *Input) SetAccentUnfocused(c lipgloss.Color)  { m.opts.AccentUnfocused = c }
+func (m *Input) SetBackground(c lipgloss.Color)       { m.opts.Background = c }
+func (m *Input) SetPromptStyle(s lipgloss.Style)      { m.opts.PromptStyle = s }
+func (m *Input) SetTextStyle(s lipgloss.Style)        { m.opts.TextStyle = s }
+func (m *Input) SetPlaceholderStyle(s lipgloss.Style) { m.opts.PlaceholderStyle = s }
+func (m *Input) SetCursorStyle(s lipgloss.Style)      { m.opts.CursorStyle = s }
+func (m *Input) SetDropdownAccent(c lipgloss.Color)   { m.opts.DropdownAccent = c }
 
 // CommitDropdownSelection should be called by the parent when user presses enter
 func (m *Input) CommitDropdownSelection(close bool) *InputCommand {
@@ -559,8 +549,13 @@ func (m Input) DropdownView() string {
 		accentColor = m.opts.AccentFocused
 	}
 
+	dropdownAccentColor := m.opts.DropdownAccent
+	if dropdownAccentColor == "" {
+		dropdownAccentColor = m.opts.Background
+	}
+
 	bgStyle := lipgloss.NewStyle().Background(m.opts.Background)
-	accentBar := lipgloss.NewStyle().Foreground(m.opts.Background).Render("▎")
+	accentBar := lipgloss.NewStyle().Foreground(dropdownAccentColor).Render("▎")
 	accentGap := bgStyle.Width(1).Render(" ")
 
 	innerWidth := m.width - 2

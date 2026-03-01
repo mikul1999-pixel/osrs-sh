@@ -35,27 +35,48 @@ func blLeft(s string, col int) string {
 	return lipgloss.NewStyle().MaxWidth(col).Render(s)
 }
 
-// baseLineRight returns the visible characters of s starting at column col
 func blRight(s string, col int) string {
-	// Strip everything left of col
-	leftPart := lipgloss.NewStyle().MaxWidth(col).Render(s)
-	leftW := lipgloss.Width(leftPart)
+	totalW := lipgloss.Width(s)
+	if col >= totalW {
+		return ""
+	}
+	// Render with left padding equal to col, then strip that padding
+	padded := lipgloss.NewStyle().
+		PaddingLeft(col).
+		MaxWidth(totalW).
+		Render(lipgloss.NewStyle().MaxWidth(totalW - col).Render(
+			lipgloss.NewStyle().MarginLeft(-col).Render(s),
+		))
+	_ = padded
 
-	// Walk runes counting visible width
+	return truncateLeft(s, col)
+}
+
+func truncateLeft(s string, col int) string {
 	inEscape := false
+	var activeEscapes []string
+	var currentEscape strings.Builder
 	pos := 0
+
 	for i, r := range s {
 		if r == '\x1b' {
 			inEscape = true
+			currentEscape.Reset()
+			currentEscape.WriteRune(r)
+			continue
 		}
 		if inEscape {
+			currentEscape.WriteRune(r)
 			if r == 'm' {
 				inEscape = false
+				activeEscapes = append(activeEscapes, currentEscape.String())
 			}
 			continue
 		}
-		if pos >= leftW {
-			return s[i:]
+		if pos >= col {
+			// Re emit all active escapes before the visible content
+			prefix := strings.Join(activeEscapes, "")
+			return prefix + s[i:]
 		}
 		pos += lipgloss.Width(string(r))
 	}

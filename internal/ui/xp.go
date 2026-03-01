@@ -101,11 +101,11 @@ func NewXPModel() XPModel {
 	input := components.NewInput(components.InputOptions{
 		CharLimit:        12,
 		Placeholder:      "type level or xp...",
-		AccentUnfocused:  lipgloss.Color(ColorBorder),
-		Background:       lipgloss.Color(ColorBgInput),
-		TextStyle:        InputPrompt,
-		PlaceholderStyle: InputPlaceholder,
-		CursorStyle:      InputCursor,
+		AccentUnfocused:  lipgloss.Color(ActiveTheme.Border),
+		Background:       lipgloss.Color(ActiveTheme.BgInput),
+		TextStyle:        ActiveTheme.InputPrompt(),
+		PlaceholderStyle: ActiveTheme.InputPlaceholder(),
+		CursorStyle:      ActiveTheme.InputCursor(),
 		ShowBottomRow:    true,
 		PaddingTop:       0,
 		PaddingMiddle:    0,
@@ -266,7 +266,7 @@ func (m *XPModel) saveCurrentInput() tea.Cmd {
 			m.xp[m.selected] = xp.LevelToXP(level)
 			return func() tea.Msg {
 				return LevelSetMsg{
-					Message: strings.ToLower(skills[m.selected].abbrev) + " set to level " + StatusBlockMode1.Render(fmt.Sprintf(" %d ", level)),
+					Message: strings.ToLower(skills[m.selected].abbrev) + " set to level " + ActiveTheme.StatusBlockMode1().Render(fmt.Sprintf(" %d ", level)),
 					Sub:     "current",
 					Style:   components.ToastInfo,
 				}
@@ -277,7 +277,7 @@ func (m *XPModel) saveCurrentInput() tea.Cmd {
 			m.targets[m.selected] = level
 			return func() tea.Msg {
 				return LevelSetMsg{
-					Message: strings.ToLower(skills[m.selected].abbrev) + " set to level " + StatusBlockMode2.Render(fmt.Sprintf(" %d ", level)),
+					Message: strings.ToLower(skills[m.selected].abbrev) + " set to level " + ActiveTheme.StatusBlockMode2().Render(fmt.Sprintf(" %d ", level)),
 					Sub:     "target",
 					Style:   components.ToastInfo,
 				}
@@ -294,59 +294,63 @@ const (
 	statsW   = 32
 )
 
-var (
-	sidebarPanel = components.New(sidebarW).
-			Title(PanelTitle.Render("Skills")).
-			BottomTitle(BodyDim.Render("jk ↑↓")).
-			BottomTitleAlign(2).
-			BgColor(ColorBg).
-			Decorator(components.DecoratorDash).
-			ActiveBorderColor(ColorBorder).
-			InactiveBorderColor(ColorBorder).
-			ActiveTitleColor(ColorText).
-			InactiveTitleColor(ColorText).
-			Padding(0, 1)
+func (m XPModel) buildPanels() (*components.Panel, *components.Panel, *components.Panel, *components.Panel) {
+	sidebar := components.New(sidebarW).
+		Title(ActiveTheme.PanelTitleInactive().Render("Skills")).
+		BottomTitle(ActiveTheme.BodyDim().Render("jk ↑↓")).
+		BottomTitleAlign(2).
+		BgColor(ActiveTheme.Bg).
+		Decorator(components.DecoratorDash).
+		ActiveBorderColor(ActiveTheme.Border).
+		InactiveBorderColor(ActiveTheme.Border).
+		ActiveTitleColor(ActiveTheme.Text).
+		InactiveTitleColor(ActiveTheme.Text).
+		Padding(0, 1)
 
-	iconPanel = components.New(sidebarW).
-			TitleAlign(1). // set title in renderIcon()
-			BgColor(ColorBg).
-			Decorator(components.DecoratorDash).
-			ActiveBorderColor(ColorBorder).
-			InactiveBorderColor(ColorBorder).
-			Padding(0, 1)
+	icon := components.New(sidebarW).
+		TitleAlign(1).
+		BgColor(ActiveTheme.Bg).
+		Decorator(components.DecoratorDash).
+		ActiveBorderColor(ActiveTheme.Border).
+		InactiveBorderColor(ActiveTheme.Border).
+		Padding(0, 1)
 
-	statsPanel = components.New(statsW).
-			Title(PanelTitle.Render("XP Info")).
-			BgColor(ColorBg).
-			Decorator(components.DecoratorDash).
-			ActiveBorderColor(ColorBorder).
-			InactiveBorderColor(ColorBorder).
-			ActiveTitleColor(ColorText).
-			InactiveTitleColor(ColorText).
-			Padding(0, 1)
+	stats := components.New(statsW).
+		Title(ActiveTheme.PanelTitleInactive().Render("XP Info")).
+		BgColor(ActiveTheme.Bg).
+		Decorator(components.DecoratorDash).
+		ActiveBorderColor(ActiveTheme.Border).
+		InactiveBorderColor(ActiveTheme.Border).
+		ActiveTitleColor(ActiveTheme.Text).
+		InactiveTitleColor(ActiveTheme.Text).
+		Padding(0, 1)
 
-	presetsPanel = components.New(statsW).
-			Title(PanelTitle.Render("Presets")).
-			BottomTitle(BodyDim.Render("esc ↻")).
-			BottomTitleAlign(2).
-			BgColor(ColorBg).
-			Decorator(components.DecoratorDash).
-			ActiveBorderColor(ColorBorder).
-			InactiveBorderColor(ColorBorder).
-			ActiveTitleColor(ColorText).
-			InactiveTitleColor(ColorText).
-			Padding(0, 1)
-)
+	presets := components.New(statsW).
+		Title(ActiveTheme.PanelTitleInactive().Render("Presets")).
+		BottomTitle(ActiveTheme.BodyDim().Render("esc ↻")).
+		BottomTitleAlign(2).
+		BgColor(ActiveTheme.Bg).
+		Decorator(components.DecoratorDash).
+		ActiveBorderColor(ActiveTheme.Border).
+		InactiveBorderColor(ActiveTheme.Border).
+		ActiveTitleColor(ActiveTheme.Text).
+		InactiveTitleColor(ActiveTheme.Text).
+		Padding(0, 1)
+
+	return sidebar, icon, stats, presets
+}
 
 func (m XPModel) View() string {
 	if m.width == 0 {
 		return ""
 	}
+	m.syncInputTheme()
+	sidebarPanel, iconPanel, statsPanel, presetsPanel := m.buildPanels()
 
-	sidebar := m.renderSidebar(sidebarW)
-	icon := m.renderIcon(sidebarW)
-	stats := m.renderStats(statsW)
-	presets := m.renderPresets()
+	sidebar := m.renderSidebar(sidebarW, sidebarPanel)
+	icon := m.renderIcon(sidebarW, iconPanel)
+	stats := m.renderStats(statsW, statsPanel)
+	presets := m.renderPresets(presetsPanel)
 
 	colOne := lipgloss.JoinVertical(lipgloss.Left, sidebar, icon)
 	colTwo := lipgloss.JoinVertical(lipgloss.Left, stats, presets)
@@ -355,14 +359,14 @@ func (m XPModel) View() string {
 	return lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
-		Background(lipgloss.Color(ColorBg)).
+		Background(lipgloss.Color(ActiveTheme.Bg)).
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(row)
 }
 
 // -- Sidebar ----------
 
-func (m XPModel) renderSidebar(w int) string {
+func (m XPModel) renderSidebar(w int, sidebarPanel *components.Panel) string {
 	var sb strings.Builder
 	sb.WriteString("\n")
 
@@ -387,9 +391,9 @@ func (m XPModel) renderSidebar(w int) string {
 		if m.targets[i] < 99 {
 			currentLevel := xp.XPToLevel(m.xp[i])
 			if currentLevel >= m.targets[i] {
-				dot = lipgloss.NewStyle().Foreground(lipgloss.Color(ColorGreen)).Render("•")
+				dot = lipgloss.NewStyle().Foreground(lipgloss.Color(ActiveTheme.Green)).Render("•")
 			} else {
-				dot = lipgloss.NewStyle().Foreground(lipgloss.Color(ColorRed)).Render("•")
+				dot = lipgloss.NewStyle().Foreground(lipgloss.Color(ActiveTheme.Red)).Render("•")
 			}
 		} else {
 			dot = " " // alignment when no dot
@@ -400,17 +404,17 @@ func (m XPModel) renderSidebar(w int) string {
 		var cellRendered string
 		if currentLevel >= 99 {
 			if m.xp[i] >= 200000000 {
-				cellRendered = SidebarItem200M.Width(cellW).Render(cell)
+				cellRendered = ActiveTheme.SidebarItem200M().Width(cellW).Render(cell)
 			} else {
-				cellRendered = SidebarItemMaxed.Width(cellW).Render(cell)
+				cellRendered = ActiveTheme.SidebarItemMaxed().Width(cellW).Render(cell)
 			}
 		} else {
-			cellRendered = SidebarItem.Width(cellW).Render(cell)
+			cellRendered = ActiveTheme.SidebarItem().Width(cellW).Render(cell)
 		}
 
 		var rendered string
 		if i == m.selected {
-			rendered = dot + SidebarItemSelected.Width(cellW).Render(cell)
+			rendered = dot + ActiveTheme.SidebarItemSelected().Width(cellW).Render(cell)
 		} else {
 			rendered = dot + cellRendered
 		}
@@ -427,7 +431,7 @@ func (m XPModel) renderSidebar(w int) string {
 
 // -- Icon ----------
 
-func (m XPModel) renderIcon(w int) string {
+func (m XPModel) renderIcon(w int, iconPanel *components.Panel) string {
 	s := skills[m.selected]
 
 	var imageContent string
@@ -437,12 +441,12 @@ func (m XPModel) renderIcon(w int) string {
 		if m.spinner != nil {
 			frame = m.spinner.View()
 		}
-		return StatusLine1.
+		return ActiveTheme.StatusLine().
 			Width(w).Height(10).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(frame + " loading...")
 	case m.imageErr != "":
-		imageContent = lipgloss.NewStyle().
+		imageContent = ActiveTheme.Error().
 			Width(w).Height(10).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render("x " + m.imageErr)
@@ -452,7 +456,7 @@ func (m XPModel) renderIcon(w int) string {
 			Align(lipgloss.Center).
 			Render(m.currentImage)
 	default:
-		imageContent = ImagePlaceholder.
+		imageContent = ActiveTheme.ImagePlaceholder().
 			Width(w).Height(10).
 			Render("scroll for skill icon")
 	}
@@ -460,14 +464,14 @@ func (m XPModel) renderIcon(w int) string {
 	imageBox := lipgloss.NewStyle().
 		Padding(1, 1).
 		Render(imageContent)
-	imageTitle := PanelTitleAccent.Render(strings.ToUpper(s.name))
+	imageTitle := ActiveTheme.PanelTitleActive().Render(strings.ToUpper(s.name))
 
 	return iconPanel.Title(imageTitle).Render(imageBox, false)
 }
 
 // -- Stats panel ----------
 
-func (m XPModel) renderStats(w int) string {
+func (m XPModel) renderStats(w int, statsPanel *components.Panel) string {
 	s := skills[m.selected]
 
 	// Source of truth: stored values
@@ -505,10 +509,10 @@ func (m XPModel) renderStats(w int) string {
 	switch m.mode {
 	case modeCurrent:
 		modeBar = "Current"
-		modeColor = ColorSecondary
+		modeColor = string(ActiveTheme.Secondary)
 		m.input.SetAccentFocused(lipgloss.Color(modeColor))
 
-		sb.WriteString(StatHeader.Render("MILESTONES") + "\n")
+		sb.WriteString(ActiveTheme.StatHeader().Render("MILESTONES") + "\n")
 		var maxText string
 		if currentXP >= 200000000 {
 			maxText = "200m! nerd"
@@ -520,14 +524,14 @@ func (m XPModel) renderStats(w int) string {
 			sb.WriteString(statRowMode("To next lvl", formatXP(xp.XPToNextLevel(currentXP)), modeColor) + "\n")
 			sb.WriteString(statRowMode("To level 99", formatXP(xp.XPToLevel99(currentXP)), modeColor) + "\n\n")
 		} else {
-			sb.WriteString(statRowDim("To next lvl", Bg.Render(maxText)) + "\n")
-			sb.WriteString(statRowDim("To level 99", Bg.Render(maxText)) + "\n\n")
+			sb.WriteString(statRowDim("To next lvl", ActiveTheme.Bg_().Render(maxText)) + "\n")
+			sb.WriteString(statRowDim("To level 99", ActiveTheme.Bg_().Render(maxText)) + "\n\n")
 		}
 		for _, milestone := range []int{50, 70, 80, 90, 99} {
 			needed := xp.XPBetween(currentXP, xp.LevelToXP(milestone))
 			label := fmt.Sprintf("→ Lvl %d", milestone)
 			if currentLevel >= milestone {
-				sb.WriteString(statRowDim(label, Bg.Render("reached!")) + "\n")
+				sb.WriteString(statRowDim(label, ActiveTheme.Bg_().Render("reached!")) + "\n")
 			} else {
 				sb.WriteString(statRowMode(label, formatXP(needed), modeColor) + "\n")
 			}
@@ -535,10 +539,10 @@ func (m XPModel) renderStats(w int) string {
 
 	case modeTarget:
 		modeBar = "Target"
-		modeColor = ColorPositive
+		modeColor = string(ActiveTheme.Positive)
 		m.input.SetAccentFocused(lipgloss.Color(modeColor))
 
-		sb.WriteString(StatHeader.Render("GOALS") + "\n")
+		sb.WriteString(ActiveTheme.StatHeader().Render("GOALS") + "\n")
 		sb.WriteString(statRowMode("Target lvl", fmt.Sprintf("%d", targetLevel), modeColor) + "\n")
 		sb.WriteString(statRowMode("Target XP", formatXP(targetXP), modeColor) + "\n")
 		sb.WriteString("\n")
@@ -548,11 +552,11 @@ func (m XPModel) renderStats(w int) string {
 			sb.WriteString(statRowMode("Levels left", fmt.Sprintf("%d", levelsLeft), modeColor) + "\n")
 			sb.WriteString(statRowMode("XP needed", formatXP(needed), modeColor) + "\n")
 		} else if targetLevel == currentLevel {
-			sb.WriteString(statRowDim("Levels left", Bg.Render("= current")) + "\n")
-			sb.WriteString(statRowDim("XP needed", Bg.Render("= current")) + "\n")
+			sb.WriteString(statRowDim("Levels left", ActiveTheme.Bg_().Render("= current")) + "\n")
+			sb.WriteString(statRowDim("XP needed", ActiveTheme.Bg_().Render("= current")) + "\n")
 		} else {
-			sb.WriteString(statRowDim("Levels left", Bg.Render("< current")) + "\n")
-			sb.WriteString(statRowDim("XP needed", Bg.Render("< current")) + "\n")
+			sb.WriteString(statRowDim("Levels left", ActiveTheme.Bg_().Render("< current")) + "\n")
+			sb.WriteString(statRowDim("XP needed", ActiveTheme.Bg_().Render("< current")) + "\n")
 		}
 		sb.WriteString("\n\n\n")
 	}
@@ -561,15 +565,15 @@ func (m XPModel) renderStats(w int) string {
 
 	// -- Input box ----------
 	m.input.SetWidth(w - 4)
-	m.input.SetBottomLeft(BgInput.Foreground(lipgloss.Color(modeColor)).Faint(true).Render(modeBar))
+	m.input.SetBottomLeft(ActiveTheme.BgInput_().Foreground(lipgloss.Color(modeColor)).Faint(true).Render(modeBar))
 	sb.WriteString(m.input.View() + "\n")
 
 	// -- Instructions ----------
 	if m.input.Focused() {
-		sb.WriteString(HelpStyle.Render(" tab ") + HelpStyleMuted.Render("mode") + Space(2))
-		sb.WriteString(HelpStyle.Render("enter ") + HelpStyleMuted.Render("set"))
+		sb.WriteString(ActiveTheme.Help().Render(" tab ") + ActiveTheme.HelpMuted().Render("mode") + Space(2))
+		sb.WriteString(ActiveTheme.Help().Render("enter ") + ActiveTheme.HelpMuted().Render("set"))
 	} else {
-		sb.WriteString(HelpStyle.Render("tab ") + HelpStyleMuted.Render("focus") + Space(2))
+		sb.WriteString(ActiveTheme.Help().Render("tab ") + ActiveTheme.HelpMuted().Render("focus") + Space(2))
 	}
 
 	return statsPanel.Render(sb.String(), false)
@@ -577,10 +581,10 @@ func (m XPModel) renderStats(w int) string {
 
 // -- Presets panel ----------
 
-func (m XPModel) renderPresets() string {
+func (m XPModel) renderPresets(presetsPanel *components.Panel) string {
 	lines := make([]string, len(render.GetPresets()))
 	for i, p := range render.GetPresets() {
-		lines[i] = HomeKeybindStyle.Render(p.Hotkey) + StatValueDim.Render("  "+p.Name)
+		lines[i] = ActiveTheme.HomeKeybind().Render(p.Hotkey) + ActiveTheme.StatValueDim().Render("  "+p.Name)
 	}
 	return presetsPanel.Render(strings.Join(lines, "\n"), false)
 }
@@ -588,7 +592,7 @@ func (m XPModel) renderPresets() string {
 // -- Helpers ----------
 
 func statRow(label, value string) string {
-	return StatLabel.Render(label+":") + StatValue.Render(value)
+	return ActiveTheme.StatLabel().Render(label+":") + ActiveTheme.StatValue().Render(value)
 }
 
 func statRowMode(label, value string, color string) string {
@@ -596,12 +600,12 @@ func statRowMode(label, value string, color string) string {
 	if color == "" {
 		lipglossColor = ColorGold
 	}
-	return StatLabelMode.Render(label+":") +
-		StatValueMode.Foreground(lipgloss.Color(lipglossColor)).Render(value)
+	return ActiveTheme.StatLabelActive().Render(label+":") +
+		ActiveTheme.StatValueActive().Foreground(lipgloss.Color(lipglossColor)).Render(value)
 }
 
 func statRowDim(label, value string) string {
-	return StatLabelMode.Render(label+":") + StatValueDim.Render(value)
+	return ActiveTheme.StatLabelActive().Render(label+":") + ActiveTheme.StatValueDim().Render(value)
 }
 
 func parseXPInput(raw string) (totalXP, level int) {
@@ -654,4 +658,13 @@ func (m *XPModel) resetTargets() {
 		m.targets[i] = 99
 	}
 	m.syncInputToMode()
+}
+
+// syncInputTheme ensures input box styling can render in View and update
+func (m *XPModel) syncInputTheme() {
+	m.input.SetAccentUnfocused(lipgloss.Color(ActiveTheme.Border))
+	m.input.SetBackground(lipgloss.Color(ActiveTheme.BgInput))
+	m.input.SetTextStyle(ActiveTheme.InputPrompt())
+	m.input.SetPlaceholderStyle(ActiveTheme.InputPlaceholder())
+	m.input.SetCursorStyle(ActiveTheme.InputCursor())
 }

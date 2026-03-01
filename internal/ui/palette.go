@@ -14,21 +14,23 @@ const (
 // PaletteModel is the command palette modal overlay
 type PaletteModel struct {
 	input   components.Input
+	help    string
 	visible bool
 	width   int
 	height  int
 }
 
 func NewPaletteModel() PaletteModel {
+	// do not update: prevent from dimmed() impact
 	input := components.NewInput(components.InputOptions{
 		Placeholder:      "begin typing /",
 		CharLimit:        80,
-		AccentFocused:    lipgloss.Color(ColorAccent),
-		AccentUnfocused:  lipgloss.Color(ColorMuted),
-		Background:       lipgloss.Color(ColorBgPanel),
-		TextStyle:        InputPrompt,
-		PlaceholderStyle: InputPlaceholder,
-		CursorStyle:      InputCursor,
+		AccentFocused:    lipgloss.Color(ActiveTheme.Primary),
+		AccentUnfocused:  lipgloss.Color(ActiveTheme.Muted),
+		Background:       lipgloss.Color(ActiveTheme.BgModal),
+		TextStyle:        ActiveTheme.InputPrompt(),
+		PlaceholderStyle: ActiveTheme.InputPlaceholder(),
+		CursorStyle:      ActiveTheme.InputCursor(),
 		ShowBottomRow:    false,
 		PaddingTop:       0,
 		PaddingMiddle:    0,
@@ -36,23 +38,25 @@ func NewPaletteModel() PaletteModel {
 
 		// Dropdown
 		Commands:        buildInputCommands(),
-		DropdownVisible: 18,
+		DropdownVisible: 17,
+		DropdownAccent:  lipgloss.Color(ActiveTheme.BgModalList),
 		ForceDropdown:   true,
 	})
 	input.Focus()
-	return PaletteModel{input: input}
+	return PaletteModel{input: input, help: ""}
 }
 
 func (p PaletteModel) Init() tea.Cmd {
-	return p.input.Init()
+	return nil
 }
 
-func (p PaletteModel) Open() PaletteModel {
+func (p PaletteModel) Open() (PaletteModel, tea.Cmd) {
 	p.visible = true
 	p.input.SetValue("/")
+	p.help = ""
 	p.input.Focus()
 	p.input.RefreshDropdown()
-	return p
+	return p, p.input.Init()
 }
 
 func (p PaletteModel) Close() PaletteModel {
@@ -69,11 +73,16 @@ func (p PaletteModel) SetSize(w, h int) PaletteModel {
 }
 
 func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
+	var cmd tea.Cmd
+
+	// Force cursor blink by always forwarding messages to child
+	p.input, cmd = p.input.Update(msg)
+
 	if !p.visible {
-		return p, nil
+		return p, cmd
 	}
 
-	var cmd tea.Cmd
+	// var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -86,6 +95,7 @@ func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
 					return p, executeCommand(*selected)
 				}
 				p.input.SetValue(insertCommand(*selected))
+				p.help = p.inputHelpText()
 				return p, nil
 			}
 			nav, _ := parseCommand(p.input.Value())
@@ -97,7 +107,8 @@ func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
 		}
 	}
 
-	p.input, cmd = p.input.Update(msg)
+	// p.input, cmd = p.input.Update(msg)
+	p.help = p.inputHelpText()
 	return p, cmd
 }
 
@@ -107,7 +118,7 @@ func (p PaletteModel) View() string {
 	}
 
 	pad := lipgloss.NewStyle().
-		Background(lipgloss.Color(ColorBgPanel)).
+		Background(lipgloss.Color(ActiveTheme.BgModal)).
 		Width(paletteWidth + 2).
 		Height(1).
 		Render("")
@@ -115,21 +126,35 @@ func (p PaletteModel) View() string {
 	panel := components.New(paletteWidth).
 		Height(paletteHeight).
 		PaddingFull(1, 1, 0, 1).
-		Title("Commands").
-		Badge(BodyDim.Render("esc")).
-		BgColor(lipgloss.Color(ColorBgPanel)).
-		ActiveBorderColor(lipgloss.Color(ColorBgPanel)).
-		InactiveBorderColor(lipgloss.Color(ColorBgPanel))
+		Title(ActiveTheme.PanelTitleMenu().Render("Commands")).
+		Badge(ActiveTheme.PanelBadgeMenu().Render("esc")).
+		BgColor(lipgloss.Color(ActiveTheme.BgModal)).
+		ActiveBorderColor(lipgloss.Color(ActiveTheme.BgModal)).
+		InactiveBorderColor(lipgloss.Color(ActiveTheme.BgModal))
 
 	inputView := p.input.View()
 	dropdownView := p.input.DropdownView()
+	helpText := p.help
+	helpGap := lipgloss.NewStyle().Background(lipgloss.Color(ActiveTheme.BgModal)).Render("  ")
 
 	var content string
 	if dropdownView != "" {
-		content = inputView + "\n" + dropdownView
+		content = inputView + "\n" + helpGap + helpText + "\n" + dropdownView
 	} else {
-		content = inputView
+		content = inputView + "\n" + helpGap + helpText
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, pad, panel.Render(content, true))
+}
+
+// -- Helpers ----------
+
+func (p *PaletteModel) inputHelpText() string {
+	bg := lipgloss.NewStyle().Background(lipgloss.Color(ActiveTheme.BgModal))
+	defaultHelp := HelpLine{
+		Hint:     "",
+		Command:  "",
+		AfterCmd: "",
+	}
+	return CommandHelp(p.input.Value(), bg, defaultHelp)
 }

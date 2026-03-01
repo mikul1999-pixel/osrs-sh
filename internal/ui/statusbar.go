@@ -18,8 +18,8 @@ func (a AppModel) renderStatusBar() string {
 // renderStatusLine1 renders the top line
 func (a AppModel) renderStatusLine1() string {
 	right := a.renderStatusBlock()
-	spacer := StatusLine2.Render(strings.Repeat(" ", max(0, a.width-lipgloss.Width(right))))
-	return StatusLine2.Width(a.width).Render(spacer + right)
+	spacer := ActiveTheme.StatusLine().Render(strings.Repeat(" ", max(0, a.width-lipgloss.Width(right))))
+	return ActiveTheme.StatusLine().Width(a.width).Render(spacer + right)
 }
 
 // renderStatusLine1 renders the context line
@@ -31,9 +31,9 @@ func (a AppModel) renderStatusLine2() string {
 	if gap < 0 {
 		gap = 0
 	}
-	spacer := StatusLine1.Render(strings.Repeat(" ", gap))
+	spacer := ActiveTheme.StatusLine().Render(strings.Repeat(" ", gap))
 
-	return StatusLine1.Width(a.width).Render(left + spacer + right)
+	return ActiveTheme.StatusLine().Width(a.width).Render(left + spacer + right)
 }
 
 // renderPlayerBlock renders the left segment of line 1
@@ -44,16 +44,16 @@ func (a AppModel) renderPlayerBlock() string {
 		if a.spinner != nil {
 			frame = a.spinner.View()
 		}
-		return StatusLine1.Render(
-			" " + StatusLine1.Render(frame+" loading ") +
-				StatusLine1.Render(strings.ToLower(a.player.RSN)+"..."),
+		return ActiveTheme.StatusLine().Render(
+			" " + ActiveTheme.StatusLine().Render(frame+" loading ") +
+				ActiveTheme.StatusLine().Render(strings.ToLower(a.player.RSN)+"..."),
 		)
 	}
 
 	// Error state
 	if a.player.Err != "" {
-		return StatusLine1.Render(
-			StatusError.Render(" ! " + a.player.Err + " "),
+		return ActiveTheme.StatusLine().Render(
+			ActiveTheme.StatusError().Render(" ! " + a.player.Err + " "),
 		)
 	}
 
@@ -64,14 +64,14 @@ func (a AppModel) renderPlayerBlock() string {
 		if total >= 2376 {
 			flexMsg = "(btw)"
 		}
-		return StatusBlock.Render(" "+strings.ToLower(a.player.RSN)+" ") +
-			StatusLine1.Render(fmt.Sprintf(" %d", total)) +
-			StatusLine1.Render(" "+flexMsg)
+		return ActiveTheme.StatusBlock().Render(" "+strings.ToLower(a.player.RSN)+" ") +
+			ActiveTheme.StatusLine().Render(fmt.Sprintf(" %d", total)) +
+			ActiveTheme.StatusLine().Render(" "+flexMsg)
 	}
 
 	// Default - no player loaded
-	return StatusBlock.Render(" username ") +
-		StatusLine1.Render(" not set")
+	return ActiveTheme.StatusBlock().Render(" username ") +
+		ActiveTheme.StatusLine().Render(" not set")
 }
 
 // renderStatusBlock renders the right segment of line 1
@@ -79,7 +79,7 @@ func (a AppModel) renderStatusBlock() string {
 	if a.statusContext.Label == "" {
 		return ""
 	}
-	return StatusBlockMuted.Render(" "+a.statusContext.Label+" ") + StatusLine1.Render(" ")
+	return ActiveTheme.StatusBlockMuted().Render(" "+a.statusContext.Label+" ") + ActiveTheme.StatusLine().Render(" ")
 }
 
 // renderStatusActions renders the status keybind hints on line 1
@@ -90,7 +90,7 @@ func (a AppModel) renderStatusActions() string {
 
 	var parts []string
 	for _, kb := range a.statusContext.Keybinds {
-		parts = append(parts, StatusKey.Render(kb.Key)+StatusVal.Render(" "+kb.Label))
+		parts = append(parts, ActiveTheme.StatusKey().Render(kb.Key)+ActiveTheme.StatusVal().Render(" "+kb.Label))
 	}
 	return " " + strings.Join(parts, "  ")
 }
@@ -98,7 +98,7 @@ func (a AppModel) renderStatusActions() string {
 // renderGlobalActions renders the global keybind hints on line 2
 func (a AppModel) renderGlobalActions() string {
 	return Space(3) +
-		StatusKey.Render("ctrl+p") + StatusVal.Render(" commands") + Space(3) +
-		StatusKey.Render("ctrl+t") + StatusVal.Render(" themes") + Space(3) +
-		StatusKey.Render("ctrl+c") + StatusVal.Render(" quit") + " "
+		ActiveTheme.StatusKey().Render("ctrl+p") + ActiveTheme.StatusVal().Render(" commands") + Space(3) +
+		ActiveTheme.StatusKey().Render("ctrl+t") + ActiveTheme.StatusVal().Render(" themes") + Space(3) +
+		ActiveTheme.StatusKey().Render("ctrl+c") + ActiveTheme.StatusVal().Render(" quit") + " "
 }

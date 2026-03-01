@@ -5,8 +5,11 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
+
+// -- Helper File for Commands ----------
 
 // CommandAction describes what a command does beyond tab navigation
 type CommandAction int
@@ -64,6 +67,14 @@ func buildInputCommands() []components.InputCommand {
 		}
 	}
 	return out
+}
+
+// HelpLine is the hint at the bottom of the text input
+type HelpLine struct {
+	Hint      string
+	BeforeCmd string
+	Command   string
+	AfterCmd  string
 }
 
 // -- Helpers ----------
@@ -173,4 +184,59 @@ func GetTabCmds(activeTab int) []StatusKeybind {
 		// add later
 	}
 	return activeCommands
+}
+
+// CommandHelp live generates command argument help for input
+func CommandHelp(value string, bg lipgloss.Style, defaultHelpLine HelpLine) string {
+	defaultHelp := renderCommandHelp(bg, defaultHelpLine)
+
+	value = strings.TrimSpace(value)
+	if value == "" || !strings.HasPrefix(value, "/") {
+		return defaultHelp
+	}
+
+	parts := strings.Fields(value)
+	slug := strings.ToLower(parts[0])
+
+	// Still typing the command name
+	if len(parts) == 1 && !strings.HasSuffix(value, " ") {
+		return defaultHelp
+	}
+
+	// Find match command with args
+	for _, c := range commands {
+		if c.slug == slug && c.args != "" {
+			return renderCommandHelp(bg, HelpLine{
+				Hint:     "",
+				Command:  c.slug,
+				AfterCmd: c.args + " ",
+			})
+		}
+	}
+
+	return defaultHelp
+}
+
+func renderCommandHelp(bg lipgloss.Style, h HelpLine) string {
+	hintStyle := bg.Foreground(lipgloss.Color(ActiveTheme.Primary)).Faint(true)
+	cmdStyle := bg.Foreground(lipgloss.Color(ActiveTheme.TextLight)).Faint(true)
+	textStyle := bg.Foreground(lipgloss.Color(ActiveTheme.Muted))
+
+	var parts []string
+
+	if h.Hint != "" {
+		parts = append(parts, hintStyle.Render(h.Hint))
+	}
+	if h.BeforeCmd != "" {
+		parts = append(parts, textStyle.Render(h.BeforeCmd))
+	}
+	if h.Command != "" {
+		parts = append(parts, cmdStyle.Render(h.Command))
+	}
+	if h.AfterCmd != "" {
+		parts = append(parts, textStyle.Render(h.AfterCmd))
+	}
+	space := bg.Render(" ")
+
+	return strings.Join(parts, space)
 }

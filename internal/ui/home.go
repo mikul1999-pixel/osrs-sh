@@ -27,14 +27,6 @@ var CommandNavMenu = []CommandNav{
 // Upper half bright, lower half dimmed
 var logoLines = render.GetLogo()
 
-// HelpLine is the hint at the bottom of the text input
-type HelpLine struct {
-	Hint      string
-	BeforeCmd string
-	Command   string
-	AfterCmd  string
-}
-
 // HomeModel is the home screen tab.
 type HomeModel struct {
 	width  int
@@ -49,12 +41,12 @@ func NewHomeModel() HomeModel {
 		// Prompt:           "> ",
 		// PromptStyle:      HomeInputPlaceholder,
 		CharLimit:        80,
-		AccentFocused:    lipgloss.Color(ColorGold),
-		AccentUnfocused:  lipgloss.Color(ColorBorder),
-		Background:       lipgloss.Color(ColorBgInput),
-		TextStyle:        InputPrompt,
-		PlaceholderStyle: InputPlaceholder,
-		CursorStyle:      InputCursor,
+		AccentFocused:    ActiveTheme.Primary,
+		AccentUnfocused:  ActiveTheme.Border,
+		Background:       ActiveTheme.BgInput,
+		TextStyle:        ActiveTheme.InputPrompt(),
+		PlaceholderStyle: ActiveTheme.InputPlaceholder(),
+		CursorStyle:      ActiveTheme.InputCursor(),
 		ShowBottomRow:    true,
 		PaddingTop:       1,
 		PaddingMiddle:    0,
@@ -122,6 +114,8 @@ func (m HomeModel) View() string {
 	if m.width == 0 {
 		return ""
 	}
+	m.syncInputTheme()
+	m.syncHelpText()
 
 	var sections []string
 
@@ -130,10 +124,10 @@ func (m HomeModel) View() string {
 	sections = append(sections, "\n", header)
 
 	// Shared container for input elements
-	inputColumn := Bg.Width(m.width / 2).Align(lipgloss.Left)
+	inputColumn := ActiveTheme.Bg_().Width(m.width / 2).Align(lipgloss.Left)
 
 	// -- Input Box ----------
-	inputRow := Bg.Width(m.width).Align(lipgloss.Center).
+	inputRow := ActiveTheme.Bg_().Width(m.width).Align(lipgloss.Center).
 		Render(inputColumn.Render(m.input.View()))
 	sections = append(sections, inputRow)
 
@@ -144,16 +138,16 @@ func (m HomeModel) View() string {
 		RootLabel:     "/",
 		FallbackValue: "~/?",
 	})
-	info := HelpStyle.Render("config ") + HelpStyleMuted.Render(cwd)
+	info := ActiveTheme.Help().Render("config ") + ActiveTheme.HelpMuted().Render(cwd)
 
-	infoRow := Bg.Width(m.width).Align(lipgloss.Center).PaddingLeft(2).
+	infoRow := ActiveTheme.Bg_().Width(m.width).Align(lipgloss.Center).PaddingLeft(2).
 		Render(inputColumn.Render(info))
 	sections = append(sections, "\n", infoRow)
 
 	// -- Error ----------
 	if m.err != "" {
-		errRow := Bg.Width(m.width).Align(lipgloss.Center).PaddingLeft(2).
-			Render(inputColumn.Render(ErrorStyle.Render("x " + m.err)))
+		errRow := ActiveTheme.Bg_().Width(m.width).Align(lipgloss.Center).PaddingLeft(2).
+			Render(inputColumn.Render(ActiveTheme.Error().Render("x " + m.err)))
 		sections = append(sections, "\n", errRow)
 	}
 
@@ -163,7 +157,7 @@ func (m HomeModel) View() string {
 	return lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
-		Background(lipgloss.Color(ColorBg)).
+		Background(lipgloss.Color(ActiveTheme.Bg)).
 		Render(content)
 }
 
@@ -177,15 +171,15 @@ func (m HomeModel) HeaderView() (sections []string) {
 	var logoBlock strings.Builder
 	for i, line := range logoLines {
 		if i < mid {
-			logoBlock.WriteString(LogoStyle.Render(line))
+			logoBlock.WriteString(ActiveTheme.Logo().Render(line))
 		} else {
-			logoBlock.WriteString(LogoDimStyle.Render(line))
+			logoBlock.WriteString(ActiveTheme.LogoDim().Render(line))
 		}
 		if i < len(logoLines)-1 {
 			logoBlock.WriteString("\n")
 		}
 	}
-	logo := Bg.Width(m.width).Align(lipgloss.Center).Render(logoBlock.String())
+	logo := ActiveTheme.Bg_().Width(m.width).Align(lipgloss.Center).Render(logoBlock.String())
 	sections = append(sections, "\n\n", logo, "\n\n")
 
 	// -- Command List ----------
@@ -194,13 +188,13 @@ func (m HomeModel) HeaderView() (sections []string) {
 	colDescW := 28
 	var cmdLines strings.Builder
 	for _, c := range CommandNavMenu {
-		cmdCol := HomeCmdStyle.Width(colCmdW).Render(c.cmd)
-		descCol := HomeDescStyle.Width(colDescW).Render(c.description)
-		keyCol := HomeKeybindStyle.Render("alt+" + c.keybind)
-		tabCol := HomeKeybindStyle.Render(c.keybind)
+		cmdCol := ActiveTheme.HomeCmd().Width(colCmdW).Render(c.cmd)
+		descCol := ActiveTheme.HomeDesc().Width(colDescW).Render(c.description)
+		keyCol := ActiveTheme.HomeKeybind().Render("alt+" + c.keybind)
+		tabCol := ActiveTheme.HomeKeybind().Render(c.keybind)
 		cmdLines.WriteString(cmdCol + Space(2) + descCol + Space(2) + keyCol + Space(2) + tabCol + "\n")
 	}
-	cmdBlock := Bg.Width(m.width).Align(lipgloss.Center).Render(cmdLines.String())
+	cmdBlock := ActiveTheme.Bg_().Width(m.width).Align(lipgloss.Center).Render(cmdLines.String())
 	sections = append(sections, cmdBlock, "\n\n")
 
 	return sections
@@ -244,64 +238,22 @@ func (m HomeModel) DropdownOverlay() (panel string, x, y int) {
 
 // -- Helpers ----------
 
-func renderHelpLine(bg lipgloss.Style, h HelpLine) string {
-	hintStyle := bg.Foreground(lipgloss.Color(ColorPrimary)).Faint(true)
-	cmdStyle := bg.Foreground(lipgloss.Color(ColorTextLight)).Faint(true)
-	textStyle := bg.Foreground(lipgloss.Color(ColorMuted))
-
-	var parts []string
-
-	if h.Hint != "" {
-		parts = append(parts, hintStyle.Render(h.Hint))
-	}
-	if h.BeforeCmd != "" {
-		parts = append(parts, textStyle.Render(h.BeforeCmd))
-	}
-	if h.Command != "" {
-		parts = append(parts, cmdStyle.Render(h.Command))
-	}
-	if h.AfterCmd != "" {
-		parts = append(parts, textStyle.Render(h.AfterCmd))
-	}
-
-	return strings.Join(parts, SpaceInput(1))
-}
-
-// deriveHelpText live generates help text for input based on what user types
-func deriveHelpText(value string) string {
-	defaultHelp := renderHelpLine(BgInput, HelpLine{
+func (m *HomeModel) syncHelpText() {
+	bg := ActiveTheme.BgInput_()
+	defaultHelp := HelpLine{
 		Hint:     "● hint",
 		Command:  "begin typing /",
 		AfterCmd: " ",
-	})
-
-	value = strings.TrimSpace(value)
-	if value == "" || !strings.HasPrefix(value, "/") {
-		return defaultHelp
 	}
-
-	parts := strings.Fields(value)
-	slug := strings.ToLower(parts[0])
-
-	// Still typing the command name
-	if len(parts) == 1 && !strings.HasSuffix(value, " ") {
-		return defaultHelp
-	}
-
-	// Find match command with args
-	for _, c := range commands {
-		if c.slug == slug && c.args != "" {
-			return renderHelpLine(BgInput, HelpLine{
-				Hint:     "",
-				Command:  c.slug,
-				AfterCmd: c.args + " ",
-			})
-		}
-	}
-
-	return defaultHelp
+	m.input.SetBottomRight(CommandHelp(m.input.Value(), bg, defaultHelp))
 }
 
-func (m *HomeModel) syncHelpText() {
-	m.input.SetBottomRight(deriveHelpText(m.input.Value()))
+// syncInputTheme ensures input box styling can render in View and update
+func (m *HomeModel) syncInputTheme() {
+	m.input.SetAccentFocused(lipgloss.Color(ActiveTheme.Primary))
+	m.input.SetAccentUnfocused(lipgloss.Color(ActiveTheme.Border))
+	m.input.SetBackground(lipgloss.Color(ActiveTheme.BgInput))
+	m.input.SetTextStyle(ActiveTheme.InputPrompt())
+	m.input.SetPlaceholderStyle(ActiveTheme.InputPlaceholder())
+	m.input.SetCursorStyle(ActiveTheme.InputCursor())
 }
