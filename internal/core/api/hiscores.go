@@ -1,11 +1,18 @@
 package api
 
 import (
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
+)
+
+const (
+	baseURL    = "https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player="
+	maxRetries = 1
 )
 
 // OSRS hiscores skills. Ordered to match XP.go
@@ -40,34 +47,58 @@ type Result struct {
 	XP [24]int
 }
 
-func Lookup(rsn string) (Result, error) {
-	url := fmt.Sprintf(
-		"https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=%s",
-		rsn,
-	)
-	resp, err := http.Get(url)
-	if err != nil {
-		return Result{}, fmt.Errorf("network error: %w", err)
-	}
-	defer resp.Body.Close()
+type Service struct {
+	client *Client
+}
 
-	if resp.StatusCode == 404 {
-		return Result{}, fmt.Errorf("player %q not found", strings.ToLower(rsn))
-	}
-	if resp.StatusCode != 200 {
-		return Result{}, fmt.Errorf("hiscores error: %s", resp.Status)
+func New(client *Client) *Service {
+	return &Service{client: client}
+}
+
+func (s *Service) Lookup(rsn string) (Result, error) {
+	encoded := url.QueryEscape(strings.TrimSpace(rsn))
+	fullURL := baseURL + encoded
+
+	var lastErr error
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequest("GET", fullURL, nil)
+		if err != nil {
+			return Result{}, fmt.Errorf("request build error: %w", err)
+		}
+
+		body, status, err := s.client.do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("network error: %w", err)
+			continue
+		}
+
+		switch status {
+		case 200:
+			return parseHiscores(body)
+		case 404:
+			return Result{}, fmt.Errorf("player %q not found", strings.ToLower(rsn))
+		case 429, 500, 502, 503, 504:
+			lastErr = fmt.Errorf("temporary hiscores error: %d", status)
+			time.Sleep(2 * time.Second)
+			continue
+		default:
+			return Result{}, fmt.Errorf("hiscores error: %d", status)
+		}
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return Result{}, fmt.Errorf("read error: %w", err)
-	}
+	return Result{}, lastErr
+}
 
+func parseHiscores(body []byte) (Result, error) {
 	lines := strings.Split(strings.TrimSpace(string(body)), "\n")
+	if len(lines) < 25 {
+		return Result{}, errors.New("unexpected hiscores format")
+	}
 
 	var result Result
 	for i, localIdx := range osrsToLocal {
-		apiLine := i + 1 // skip line 0 (Overall)
+		apiLine := i + 1 // skip overall
 		if apiLine >= len(lines) {
 			break
 		}

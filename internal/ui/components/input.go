@@ -10,20 +10,28 @@ import (
 
 // -- Custom Input Box Component ----------
 
+// InputCommand is a command entry and description shown in the dropdown
+type InputCommand struct {
+	Key  string
+	Args string
+	Desc string
+}
+
+// dropdownState holds runtime state for the command dropdown
+type dropdownState struct {
+	filtered  []InputCommand
+	selected  int
+	scrollOff int
+}
+
 // InputOptions configures a new Input component
 type InputOptions struct {
-	// Placeholder text when buffer is empty
-	Placeholder string
-
-	// Prompt prefix rendered before the text, like "> "
-	Prompt        string
-	CharLimit     int
-	ShowBottomRow bool
-
-	// Dynamic content for the bottom row. Called every View()
-	BottomLeft  string
-	BottomRight string
-
+	Placeholder      string // Placeholder text when buffer is empty
+	Prompt           string // Prompt prefix rendered before the text, like "> "
+	CharLimit        int
+	ShowBottomRow    bool
+	BottomLeft       string // Dynamic content for the bottom row. Called every View()
+	BottomRight      string // Dynamic content for the bottom row. Called every View()
 	AccentFocused    lipgloss.Color
 	AccentUnfocused  lipgloss.Color
 	Background       lipgloss.Color
@@ -34,6 +42,8 @@ type InputOptions struct {
 	PaddingTop       int
 	PaddingMiddle    int
 	PaddingBottom    int
+	Commands         []InputCommand
+	DropdownVisible  int // max visible rows
 }
 
 type CursorBlinkMsg struct{}
@@ -79,6 +89,7 @@ type Input struct {
 	width         int
 	focused       bool
 	cursorVisible bool
+	dropdown      *dropdownState
 }
 
 // NewInput creates a new Input with the given options merged over defaults
@@ -165,6 +176,60 @@ func (m *Input) SetAccentUnfocused(c lipgloss.Color) {
 	m.opts.AccentUnfocused = c
 }
 
+// CommitDropdownSelection should be called by the parent when user presses enter
+func (m *Input) CommitDropdownSelection() *InputCommand {
+	if m.dropdown == nil || len(m.dropdown.filtered) == 0 {
+		return nil
+	}
+	cmd := m.dropdown.filtered[m.dropdown.selected]
+	m.dropdown = nil
+	m.Reset()
+	return &cmd
+}
+
+// syncDropdown opens, filters, or closes the dropdown
+func (m *Input) syncDropdown() {
+	if len(m.opts.Commands) == 0 {
+		return
+	}
+
+	runes := m.value
+	// Trigger when buffer starts with '/'
+	if len(runes) == 0 || runes[0] != '/' {
+		m.dropdown = nil
+		return
+	}
+
+	query := strings.ToLower(string(runes[1:])) // text after the slash
+
+	var filtered []InputCommand
+	for _, c := range m.opts.Commands {
+		if strings.HasPrefix(strings.ToLower(c.Key), query) {
+			filtered = append(filtered, c)
+		}
+	}
+
+	if len(filtered) == 0 {
+		m.dropdown = nil
+		return
+	}
+
+	if m.dropdown == nil {
+		m.dropdown = &dropdownState{}
+	}
+	m.dropdown.filtered = filtered
+
+	// clamp selected index
+	if m.dropdown.selected >= len(filtered) {
+		m.dropdown.selected = len(filtered) - 1
+	}
+
+	// clamp scrolloff
+	if m.dropdown.scrollOff >= len(filtered) {
+		m.dropdown.scrollOff = 0
+	}
+}
+
 // -- Bubble Tea interface ----------
 
 func (m Input) Init() tea.Cmd {
@@ -182,6 +247,39 @@ func (m Input) Update(msg tea.Msg) (Input, tea.Cmd) {
 	case tea.KeyPressMsg:
 		if !m.focused {
 			return m, nil
+		}
+
+		// Dropdown navigation
+		if m.dropdown != nil {
+			switch msg.String() {
+			case "up":
+				if m.dropdown.selected > 0 {
+					m.dropdown.selected--
+					maxVis := m.opts.DropdownVisible
+					if maxVis < 1 {
+						maxVis = 8
+					}
+					if m.dropdown.selected < m.dropdown.scrollOff {
+						m.dropdown.scrollOff = m.dropdown.selected
+					}
+				}
+				return m, nil
+			case "down":
+				if m.dropdown.selected < len(m.dropdown.filtered)-1 {
+					m.dropdown.selected++
+					maxVis := m.opts.DropdownVisible
+					if maxVis < 1 {
+						maxVis = 8
+					}
+					if m.dropdown.selected >= m.dropdown.scrollOff+maxVis {
+						m.dropdown.scrollOff = m.dropdown.selected - maxVis + 1
+					}
+				}
+				return m, nil
+			case "esc":
+				m.dropdown = nil
+				return m, nil
+			}
 		}
 
 		switch msg.String() {
@@ -236,6 +334,8 @@ func (m Input) Update(msg tea.Msg) (Input, tea.Cmd) {
 				m.cursor += len(runes)
 			}
 		}
+
+		m.syncDropdown()
 	}
 	return m, nil
 }
@@ -423,4 +523,93 @@ func (m Input) renderBottomRow(innerWidth int, bgStyle lipgloss.Style) string {
 	middle := bgStyle.Width(gap).Render("")
 
 	return leftRendered + middle + rightRendered
+}
+
+// DropdownView returns the rendered dropdown panel in isolation. Allows parent to position the overlay
+func (m Input) DropdownView() string {
+	if m.dropdown == nil || len(m.dropdown.filtered) == 0 {
+		return ""
+	}
+
+	const (
+		keyColW = 12
+		argColW = 14
+	)
+
+	accentColor := m.opts.AccentUnfocused
+	if m.focused {
+		accentColor = m.opts.AccentFocused
+	}
+
+	bgStyle := lipgloss.NewStyle().Background(m.opts.Background)
+	accentBar := lipgloss.NewStyle().Foreground(m.opts.Background).Render("▎")
+	accentGap := bgStyle.Width(1).Render(" ")
+
+	innerWidth := m.width - 2
+	if innerWidth < 1 {
+		innerWidth = 1
+	}
+
+	// Styles - unselected
+	keyStyle := m.opts.TextStyle.
+		Background(m.opts.Background).
+		Width(keyColW)
+	argsStyle := m.opts.TextStyle.
+		Faint(true).
+		Background(m.opts.Background).
+		Width(argColW)
+	descStyle := m.opts.TextStyle.
+		Faint(true).
+		Background(m.opts.Background)
+
+	// Styles - selected
+	selBase := lipgloss.NewStyle().
+		Background(accentColor).
+		Foreground(m.opts.Background)
+	selKeyStyle := selBase.Width(keyColW)
+	selArgsStyle := selBase.Width(argColW)
+	selDescStyle := selBase
+	selGap := selBase.Width(1).Render(" ")
+
+	descW := innerWidth - keyColW - argColW // 2 = accentBar + gap
+	if descW < 0 {
+		descW = 0
+	}
+
+	dd := m.dropdown
+	maxVis := m.opts.DropdownVisible
+	if maxVis < 1 {
+		maxVis = 8
+	}
+	end := dd.scrollOff + maxVis
+	if end > len(dd.filtered) {
+		end = len(dd.filtered)
+	}
+	visible := dd.filtered[dd.scrollOff:end]
+
+	rows := make([]string, 0, len(visible))
+	for i, cmd := range visible {
+		absIdx := dd.scrollOff + i
+		key := "/" + cmd.Key
+		args := cmd.Args
+		desc := cmd.Desc
+
+		if absIdx == dd.selected {
+			row := accentBar +
+				selGap +
+				selKeyStyle.Render(key) +
+				selArgsStyle.Render(args) +
+				selDescStyle.Width(descW).Render(desc)
+			rows = append(rows, row)
+		} else {
+			row := accentBar +
+				accentGap +
+				keyStyle.Render(key) +
+				argsStyle.Render(args) +
+				descStyle.Width(descW).Render(desc)
+			rows = append(rows, row)
+		}
+	}
+
+	return strings.Join(rows, "\n")
 }

@@ -85,11 +85,6 @@ var (
 			Foreground(lipgloss.Color(ColorPrimaryDim)).
 			Bold(true)
 
-	HomeSubTitleStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color(ColorMuted)).
-				Background(lipgloss.Color(ColorBg)).
-				Italic(true)
-
 	HomeCmdStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorSecondary)).
 			Background(lipgloss.Color(ColorBg)).
@@ -232,11 +227,6 @@ var (
 
 	HelpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(ColorText)).
-			Background(lipgloss.Color(ColorBg)).
-			Italic(true)
-
-	HelpStyleDim = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(ColorTextDim)).
 			Background(lipgloss.Color(ColorBg)).
 			Italic(true)
 

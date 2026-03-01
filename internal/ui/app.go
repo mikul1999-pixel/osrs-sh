@@ -25,8 +25,9 @@ var tabNames = []string{"HOME", "XP", "MONSTER", "ITEM", "PLAYER"}
 
 // NavigateMsg is sent by child tabs to request a tab switch
 type NavigateMsg struct {
-	Tab   int
-	Query string
+	Tab    int
+	Query  string
+	Action CommandAction
 }
 
 // LoadPlayerMsg is recieved from home.go. Indicates user looked up an RSN
@@ -199,7 +200,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return a, nil
 
-	case tea.KeyMsg:
+	case tea.KeyMsg: // tea.Keymsg handles both press and release, tea.KeyPressMsg for press only
 		// Global tab switching
 		switch msg.String() {
 		case "alt+1":
@@ -249,6 +250,13 @@ func (a AppModel) View() tea.View {
 	statusBar := a.renderStatusBar()
 	full := lipgloss.JoinVertical(lipgloss.Left, content, statusBar)
 
+	// Overlay command dropdown if active
+	if a.activeTab == TabHome {
+		if panel, x, y := a.home.DropdownOverlay(); panel != "" {
+			full = placeOverlay(x, y, panel, full, a.width)
+		}
+	}
+
 	// Overlay toast in top right if visible
 	if a.toast != nil && a.toast.Visible() {
 		toastStr := a.toast.View()
@@ -268,6 +276,7 @@ func (a AppModel) View() tea.View {
 	v := tea.NewView(place)
 	v.AltScreen = true
 	v.BackgroundColor = lipgloss.Color(ColorBg)
+	v.WindowTitle = "osrs-sh"
 	return v
 }
 
@@ -304,8 +313,11 @@ func (a AppModel) contentHeight() int {
 // -- Commands ----------
 
 func loadPlayerCmd(rsn string) tea.Cmd {
+	client := api.NewClient(api.Options{})
+	hs := api.New(client)
+
 	return func() tea.Msg {
-		result, err := api.Lookup(rsn)
+		result, err := hs.Lookup(rsn)
 		if err != nil {
 			return PlayerErrMsg{err: err.Error()}
 		}
