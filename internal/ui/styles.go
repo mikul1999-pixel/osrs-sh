@@ -24,15 +24,18 @@ const (
 	ColorOrange     = "#d19a66"
 
 	ColorBg      = "#13141a" // default background
+	ColorBgDim   = "#0d0d12" // default background dimmed
 	ColorBgInput = "#2a2b3d" // text boxes
+	ColorBgPanel = "#10111a" // command palette
 
 	ColorBorder = "#2a2b3d" // panel borders
 
-	ColorText         = "#abb2bf"       // main text
-	ColorTextLight    = "#90969f"       // main text light
-	ColorTextDim      = "#3e4451"       // main text dimmed
-	ColorTextDark     = "#151516"       // main text dimmed
-	ColorMuted        = "#4b5263"       // help / info
+	ColorText         = "#abb2bf" // main text
+	ColorTextLight    = "#90969f" // main text light
+	ColorTextDim      = "#3e4451" // main text dimmed
+	ColorTextDark     = "#151516" // main text dimmed
+	ColorMuted        = "#4b5263" // help / info
+	ColorAccent       = ColorGold
 	ColorPrimary      = ColorGold       // primary accent
 	ColorPrimaryDim   = ColorGoldDim    // primary accent dimmed
 	ColorPrimaryDark  = ColorGoldDark   // primary accent dark

@@ -44,6 +44,7 @@ type InputOptions struct {
 	PaddingBottom    int
 	Commands         []InputCommand
 	DropdownVisible  int // max visible rows
+	ForceDropdown    bool
 }
 
 type CursorBlinkMsg struct{}
@@ -151,6 +152,11 @@ func (m *Input) Reset() {
 	m.cursor = 0
 }
 
+// RefreshDropdown refreshes the dropdown panel
+func (m *Input) RefreshDropdown() {
+	m.syncDropdown()
+}
+
 // SetPlaceholder updates the placeholder string
 func (m *Input) SetPlaceholder(s string) {
 	m.opts.Placeholder = s
@@ -177,13 +183,15 @@ func (m *Input) SetAccentUnfocused(c lipgloss.Color) {
 }
 
 // CommitDropdownSelection should be called by the parent when user presses enter
-func (m *Input) CommitDropdownSelection() *InputCommand {
+func (m *Input) CommitDropdownSelection(close bool) *InputCommand {
 	if m.dropdown == nil || len(m.dropdown.filtered) == 0 {
 		return nil
 	}
 	cmd := m.dropdown.filtered[m.dropdown.selected]
-	m.dropdown = nil
-	m.Reset()
+	if close {
+		m.dropdown = nil
+		m.Reset()
+	}
 	return &cmd
 }
 
@@ -192,15 +200,25 @@ func (m *Input) syncDropdown() {
 	if len(m.opts.Commands) == 0 {
 		return
 	}
-
 	runes := m.value
 	// Trigger when buffer starts with '/'
 	if len(runes) == 0 || runes[0] != '/' {
+		if m.opts.ForceDropdown {
+			// show all commands unfiltered
+			if m.dropdown == nil {
+				m.dropdown = &dropdownState{}
+			}
+			m.dropdown.filtered = m.opts.Commands
+			return
+		}
 		m.dropdown = nil
 		return
 	}
-
 	query := strings.ToLower(string(runes[1:])) // text after the slash
+
+	if len(m.opts.Commands) == 0 {
+		return
+	}
 
 	var filtered []InputCommand
 	for _, c := range m.opts.Commands {

@@ -63,8 +63,13 @@ type PlayerState struct {
 }
 
 // StatusContext is the right text on the status bar
-type StatusContext struct {
+type StatusKeybind struct {
+	Key   string
 	Label string
+}
+type StatusContext struct {
+	Label    string
+	Keybinds []StatusKeybind
 }
 type SetStatusContextMsg struct{ Context StatusContext }
 
@@ -88,6 +93,7 @@ type AppModel struct {
 	toast         *components.Toast
 	activePreset  string
 	statusContext StatusContext
+	palette       PaletteModel
 }
 
 func NewAppModel() AppModel {
@@ -95,13 +101,17 @@ func NewAppModel() AppModel {
 		activeTab: TabHome,
 		home:      NewHomeModel(),
 		xp:        NewXPModel(),
+		palette:   NewPaletteModel(),
 	}
 }
 
 // -- Init ----------
 
 func (a AppModel) Init() tea.Cmd {
-	return a.home.Init()
+	return tea.Batch(
+		a.home.Init(),
+		a.palette.Init(),
+	)
 }
 
 // -- Update ----------
@@ -115,6 +125,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Propagate size to all tabs
 		a.home.SetSize(msg.Width, a.contentHeight())
 		a.xp.SetSize(msg.Width, a.contentHeight())
+		a.palette = a.palette.SetSize(msg.Width, msg.Height)
 		return a, nil
 
 	case NavigateMsg:
@@ -162,7 +173,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case PresetAppliedMsg:
 		a.activePreset = msg.Name
-		a.statusContext = StatusContext{Label: a.activePreset}
+		a.statusContext = StatusContext{Label: a.activePreset, Keybinds: GetTabCmds(TabXP)}
 		a.toast = components.NewToast().
 			SetMessage(msg.Name + " applied").
 			SetStyle(components.ToastSuccess)
@@ -170,7 +181,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case PresetClearedMsg:
 		a.activePreset = ""
-		a.statusContext = StatusContext{Label: a.activePreset}
+		a.statusContext = StatusContext{Label: a.activePreset, Keybinds: GetTabCmds(TabXP)}
 		a.toast = components.NewToast().
 			SetMessage("preset cleared").
 			SetStyle(components.ToastInfo)
@@ -201,15 +212,24 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case tea.KeyMsg: // tea.Keymsg handles both press and release, tea.KeyPressMsg for press only
-		// Global tab switching
+		if a.palette.visible {
+			var cmd tea.Cmd
+			a.palette, cmd = a.palette.Update(msg)
+			return a, cmd
+		}
 		switch msg.String() {
+		case "ctrl+p":
+			a.palette = a.palette.Open()
+			return a, nil
+
+		// Global tab switching
 		case "alt+1":
 			a.activeTab = TabHome
 			a.statusContext = StatusContext{}
 			return a, nil
 		case "alt+2":
 			a.activeTab = TabXP
-			a.statusContext = StatusContext{Label: a.activePreset}
+			a.statusContext = StatusContext{Label: a.activePreset, Keybinds: GetTabCmds(a.activeTab)}
 			return a, nil
 		case "alt+3":
 			a.activeTab = TabMonster
@@ -253,7 +273,7 @@ func (a AppModel) View() tea.View {
 	// Overlay command dropdown if active
 	if a.activeTab == TabHome {
 		if panel, x, y := a.home.DropdownOverlay(); panel != "" {
-			full = placeOverlay(x, y, panel, full, a.width)
+			full = components.PlaceOverlay(x, y, panel, full, a.width)
 		}
 	}
 
@@ -263,8 +283,19 @@ func (a AppModel) View() tea.View {
 		toastW := lipgloss.Width(toastStr)
 		toastH := lipgloss.Height(toastStr)
 		x := a.width - toastW - 1
-		full = placeOverlay(x, 1, toastStr, full, a.width)
+		full = components.PlaceOverlay(x, 1, toastStr, full, a.width)
 		_ = toastH
+	}
+
+	// Overlay command palette if visible
+	if a.palette.visible {
+		full = applyDim(full, a.width, a.height)
+		modal := a.palette.View()
+		full = lipgloss.Place(
+			a.width, a.height,
+			lipgloss.Center, lipgloss.Center,
+			modal,
+		)
 	}
 
 	place := lipgloss.Place(
@@ -327,58 +358,15 @@ func loadPlayerCmd(rsn string) tea.Cmd {
 
 // -- Helpers ----------
 
-// allows toast overlay to float on top
-func placeOverlay(x, y int, overlay, base string, width int) string {
-	baseLines := strings.Split(base, "\n")
-	overlayLines := strings.Split(overlay, "\n")
-
-	for i, ol := range overlayLines {
-		row := y + i
-		if row < 0 || row >= len(baseLines) {
-			continue
-		}
-		bl := baseLines[row]
-		// Pad base line to width if needed
-		blW := lipgloss.Width(bl)
-		if blW < width {
-			bl += strings.Repeat(" ", width-blW)
-		}
-		// Replace chars at column x with overlay line
-		baseLines[row] = blLeft(bl, x) + ol + blRight(bl, x+lipgloss.Width(ol))
-	}
-	return strings.Join(baseLines, "\n")
-}
-
-// baseLineLeft returns the visible characters of s up to column col
-func blLeft(s string, col int) string {
-	return lipgloss.NewStyle().MaxWidth(col).Render(s)
-}
-
-// baseLineRight returns the visible characters of s starting at column col
-func blRight(s string, col int) string {
-	// Strip everything left of col
-	leftPart := lipgloss.NewStyle().MaxWidth(col).Render(s)
-	leftW := lipgloss.Width(leftPart)
-
-	// Walk runes counting visible width
-	inEscape := false
-	pos := 0
-	for i, r := range s {
-		if r == '\x1b' {
-			inEscape = true
-		}
-		if inEscape {
-			if r == 'm' {
-				inEscape = false
-			}
-			continue
-		}
-		if pos >= leftW {
-			return s[i:]
-		}
-		pos += lipgloss.Width(string(r))
-	}
-	return ""
+// applyDim overlays a dimmed styling to create a transparency effect
+func applyDim(base string, w, h int) string {
+	dim := lipgloss.NewStyle().
+		// Background(lipgloss.Color(ColorBgDim)).
+		Width(w).
+		Height(h - 2).
+		Render("")
+	// place dim layer at 0,0 — covers the full base
+	return components.PlaceOverlay(0, 0, dim, base, w)
 }
 
 // -- General ----------
@@ -393,7 +381,7 @@ func SpaceInput(rpt int) string {
 	return BgInput.Render(space)
 }
 
-func GetCwdDisplay(opts CwdOptions) string {
+func getCwdDisplay(opts CwdOptions) string {
 	cwd, err := os.Getwd()
 	if err != nil {
 		if opts.FallbackValue != "" {

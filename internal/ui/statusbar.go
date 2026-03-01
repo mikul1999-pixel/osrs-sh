@@ -17,7 +17,7 @@ func (a AppModel) renderStatusBar() string {
 
 // renderStatusLine1 renders the top line
 func (a AppModel) renderStatusLine1() string {
-	right := a.renderPresetBlock()
+	right := a.renderStatusBlock()
 	spacer := StatusLine2.Render(strings.Repeat(" ", max(0, a.width-lipgloss.Width(right))))
 	return StatusLine2.Width(a.width).Render(spacer + right)
 }
@@ -25,7 +25,7 @@ func (a AppModel) renderStatusLine1() string {
 // renderStatusLine1 renders the context line
 func (a AppModel) renderStatusLine2() string {
 	left := a.renderPlayerBlock()
-	right := a.renderStatusActions()
+	right := a.renderStatusActions() + a.renderGlobalActions()
 
 	gap := a.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 0 {
@@ -74,17 +74,30 @@ func (a AppModel) renderPlayerBlock() string {
 		StatusLine1.Render(" not set")
 }
 
-// renderPresetBlock renders the right segment of line 1
-func (a AppModel) renderPresetBlock() string {
+// renderStatusBlock renders the right segment of line 1
+func (a AppModel) renderStatusBlock() string {
 	if a.statusContext.Label == "" {
 		return ""
 	}
 	return StatusBlockMuted.Render(" "+a.statusContext.Label+" ") + StatusLine1.Render(" ")
 }
 
-// renderStatusActions renders the keybind hints on line 2
+// renderStatusActions renders the status keybind hints on line 1
 func (a AppModel) renderStatusActions() string {
-	return " " +
+	if len(a.statusContext.Keybinds) == 0 {
+		return ""
+	}
+
+	var parts []string
+	for _, kb := range a.statusContext.Keybinds {
+		parts = append(parts, StatusKey.Render(kb.Key)+StatusVal.Render(" "+kb.Label))
+	}
+	return " " + strings.Join(parts, "  ")
+}
+
+// renderGlobalActions renders the global keybind hints on line 2
+func (a AppModel) renderGlobalActions() string {
+	return Space(3) +
 		StatusKey.Render("ctrl+p") + StatusVal.Render(" commands") + Space(3) +
 		StatusKey.Render("ctrl+t") + StatusVal.Render(" themes") + Space(3) +
 		StatusKey.Render("ctrl+c") + StatusVal.Render(" quit") + " "
