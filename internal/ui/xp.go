@@ -223,6 +223,38 @@ func (m XPModel) Update(msg tea.Msg) (XPModel, tea.Cmd) {
 			m.spinner = components.NewSpinner().SetFrames(components.SpinnerBraille)
 			return m, tea.Batch(loadSkillImage(skills[m.selected].name), m.spinner.Start())
 
+		case "left", "h":
+			col := m.selected % gridCols
+			if col == 0 {
+				// wrap to last column of same row
+				new := m.selected + (gridCols - 1)
+				if new < len(skills) {
+					m.selected = new
+				} else {
+					// if uneven, move upward until valid. Not needed after sailing, but still keeping
+					m.selected = len(skills) - 1
+				}
+			} else {
+				m.selected--
+			}
+			m.syncInputToMode()
+			m.imageLoading = true
+			m.spinner = components.NewSpinner().SetFrames(components.SpinnerBraille)
+			return m, tea.Batch(loadSkillImage(skills[m.selected].name), m.spinner.Start())
+
+		case "right", "l":
+			col := m.selected % gridCols
+			if col == gridCols-1 || m.selected+1 >= len(skills) {
+				// wrap to first column of same row
+				m.selected -= col
+			} else {
+				m.selected++
+			}
+			m.syncInputToMode()
+			m.imageLoading = true
+			m.spinner = components.NewSpinner().SetFrames(components.SpinnerBraille)
+			return m, tea.Batch(loadSkillImage(skills[m.selected].name), m.spinner.Start())
+
 		case "q", "e", "r":
 			for _, p := range render.GetPresets() {
 				if msg.String() == p.Hotkey {
