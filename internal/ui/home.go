@@ -9,20 +9,6 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
-// command describes a slash command shown on the home screen.
-type CommandNav struct {
-	cmd         string
-	description string
-	keybind     string
-}
-
-var CommandNavMenu = []CommandNav{
-	{"/xp", "skill xp calculator", "2"},
-	{"/npc", "monster stats & drops", "3"},
-	{"/item", "item info & ge price", "4"},
-	{"/rsn", "player lookup", "5"},
-}
-
 // ASCII logo
 // Upper half bright, lower half dimmed
 var logoLines = render.GetLogo()
@@ -53,8 +39,12 @@ func NewHomeModel() HomeModel {
 		PaddingBottom:    0,
 
 		// Dropdown
+		CommandPrefix:   "/",
 		Commands:        buildInputCommands(),
+		DropdownTrigger: '/',
 		DropdownVisible: 8,
+		ForceDropdown:   false,
+		FilterDropdown:  true,
 	})
 	input.Focus()
 	return HomeModel{input: input}
@@ -71,6 +61,7 @@ func (m HomeModel) Init() tea.Cmd {
 }
 
 func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
+	m.syncInputTheme()
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -86,7 +77,7 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 			// User selected command from dropdown
 			if selected := m.input.CommitDropdownSelection(true); selected != nil {
 				if selected.Args == "" {
-					return m, executeCommand(*selected)
+					return m, parseExecuteCommand(*selected)
 				}
 				m.input.SetValue(insertCommand(*selected))
 				m.syncHelpText()
@@ -99,7 +90,7 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 			if nav != nil {
 				m.input.SetValue("")
 				m.syncHelpText()
-				return m, executeNav(*nav)
+				return m, executeCommand(*nav)
 			}
 			return m, nil
 		}
@@ -251,7 +242,7 @@ func (m *HomeModel) syncHelpText() {
 // syncInputTheme ensures input box styling can render in View and update
 func (m *HomeModel) syncInputTheme() {
 	m.input.SetAccentFocused(lipgloss.Color(ActiveTheme.Primary))
-	m.input.SetAccentUnfocused(lipgloss.Color(ActiveTheme.Border))
+	m.input.SetAccentUnfocused(lipgloss.Color(ActiveTheme.Primary))
 	m.input.SetBackground(lipgloss.Color(ActiveTheme.BgInput))
 	m.input.SetTextStyle(ActiveTheme.InputPrompt())
 	m.input.SetPlaceholderStyle(ActiveTheme.InputPlaceholder())

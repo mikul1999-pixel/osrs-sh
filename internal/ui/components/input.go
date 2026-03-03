@@ -43,9 +43,12 @@ type InputOptions struct {
 	PaddingMiddle    int
 	PaddingBottom    int
 	Commands         []InputCommand
-	DropdownVisible  int // max visible rows
+	CommandPrefix    string // first character before each command
+	DropdownTrigger  rune   // rune to open the dropdown
+	DropdownVisible  int    // max visible rows
 	DropdownAccent   lipgloss.Color
 	ForceDropdown    bool
+	FilterDropdown   bool
 }
 
 type CursorBlinkMsg struct{}
@@ -78,6 +81,11 @@ func defaultOptions() InputOptions {
 		PaddingTop:       1,
 		PaddingMiddle:    1,
 		PaddingBottom:    1,
+		CommandPrefix:    "/",
+		DropdownTrigger:  '/',
+		DropdownVisible:  8,
+		ForceDropdown:    false,
+		FilterDropdown:   true,
 	}
 }
 
@@ -188,54 +196,85 @@ func (m *Input) CommitDropdownSelection(close bool) *InputCommand {
 // syncDropdown opens, filters, or closes the dropdown
 func (m *Input) syncDropdown() {
 	if len(m.opts.Commands) == 0 {
+		m.dropdown = nil
 		return
 	}
+
 	runes := m.value
-	// Trigger when buffer starts with '/'
-	if len(runes) == 0 || runes[0] != '/' {
-		if m.opts.ForceDropdown {
-			// show all commands unfiltered
-			if m.dropdown == nil {
-				m.dropdown = &dropdownState{}
+	trigger := m.opts.DropdownTrigger
+
+	// ForceDropdown: gnore trigger entirely
+	if m.opts.ForceDropdown {
+		if m.dropdown == nil {
+			m.dropdown = &dropdownState{}
+		}
+
+		if m.opts.FilterDropdown {
+			// Filter on the first word
+			firstWord := strings.Fields(string(runes))
+			query := ""
+			if len(firstWord) > 0 {
+				query = strings.ToLower(firstWord[0])
 			}
+			m.dropdown.filtered = filterCommands(m.opts.Commands, query)
+		} else {
 			m.dropdown.filtered = m.opts.Commands
+		}
+
+		// Close dropdown if nothing matches
+		if len(m.dropdown.filtered) == 0 {
+			m.dropdown = nil
 			return
 		}
-		m.dropdown = nil
-		return
-	}
-	query := strings.ToLower(string(runes[1:])) // text after the slash
 
-	if len(m.opts.Commands) == 0 {
-		return
-	}
-
-	var filtered []InputCommand
-	for _, c := range m.opts.Commands {
-		if strings.HasPrefix(strings.ToLower(c.Key), query) {
-			filtered = append(filtered, c)
+		// Clamp selection
+		if m.dropdown.selected >= len(m.dropdown.filtered) {
+			m.dropdown.selected = len(m.dropdown.filtered) - 1
 		}
-	}
+		if m.dropdown.scrollOff >= len(m.dropdown.filtered) {
+			m.dropdown.scrollOff = 0
+		}
 
-	if len(filtered) == 0 {
-		m.dropdown = nil
 		return
 	}
 
-	if m.dropdown == nil {
-		m.dropdown = &dropdownState{}
-	}
-	m.dropdown.filtered = filtered
+	// Only open when trigger is typed
+	if trigger != 0 {
+		if len(runes) == 0 || runes[0] != trigger {
+			m.dropdown = nil
+			return
+		}
 
-	// clamp selected index
-	if m.dropdown.selected >= len(filtered) {
-		m.dropdown.selected = len(filtered) - 1
+		if m.dropdown == nil {
+			m.dropdown = &dropdownState{}
+		}
+
+		if m.opts.FilterDropdown {
+			// Filter on text after trigger
+			query := strings.ToLower(string(runes[1:]))
+			m.dropdown.filtered = filterCommands(m.opts.Commands, query)
+		} else {
+			m.dropdown.filtered = m.opts.Commands
+		}
+
+		if len(m.dropdown.filtered) == 0 {
+			m.dropdown = nil
+			return
+		}
+
+		// Clamp selection
+		if m.dropdown.selected >= len(m.dropdown.filtered) {
+			m.dropdown.selected = len(m.dropdown.filtered) - 1
+		}
+		if m.dropdown.scrollOff >= len(m.dropdown.filtered) {
+			m.dropdown.scrollOff = 0
+		}
+
+		return
 	}
 
-	// clamp scrolloff
-	if m.dropdown.scrollOff >= len(filtered) {
-		m.dropdown.scrollOff = 0
-	}
+	// No trigger and not forced: dropdown stays closed
+	m.dropdown = nil
 }
 
 // -- Bubble Tea interface ----------
@@ -603,7 +642,7 @@ func (m Input) DropdownView() string {
 	rows := make([]string, 0, len(visible))
 	for i, cmd := range visible {
 		absIdx := dd.scrollOff + i
-		key := "/" + cmd.Key
+		key := m.opts.CommandPrefix + cmd.Key
 		args := cmd.Args
 		desc := cmd.Desc
 
@@ -625,4 +664,25 @@ func (m Input) DropdownView() string {
 	}
 
 	return strings.Join(rows, "\n")
+}
+
+// -- Helpers ----------
+
+// filterCommands
+func filterCommands(cmds []InputCommand, query string) []InputCommand {
+	if query == "" {
+		return cmds
+	}
+
+	q := strings.ToLower(query)
+	out := make([]InputCommand, 0, len(cmds))
+
+	for _, c := range cmds {
+		// Match on Key prefix
+		if strings.HasPrefix(strings.ToLower(c.Key), q) {
+			out = append(out, c)
+		}
+	}
+
+	return out
 }

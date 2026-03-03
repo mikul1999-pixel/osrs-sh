@@ -47,6 +47,7 @@ type Theme struct {
 	TextDim       lipgloss.Color
 	TextDark      lipgloss.Color // text on light backgrounds
 	Muted         lipgloss.Color // help/placeholder text
+	MutedModal    lipgloss.Color
 	ModalText     lipgloss.Color // default text color for modals
 	ModalTextDark lipgloss.Color // darker text color for modals
 	Cursor        lipgloss.Color
@@ -54,12 +55,13 @@ type Theme struct {
 
 	// Semantic
 	Primary      lipgloss.Color // main accent
+	PrimaryModal lipgloss.Color // main accent
 	PrimaryDim   lipgloss.Color
 	PrimaryDark  lipgloss.Color
-	Secondary    lipgloss.Color // supporting accent
+	Secondary    lipgloss.Color // second accent
 	SecondaryDim lipgloss.Color
-	Positive     lipgloss.Color
-	PositiveDim  lipgloss.Color
+	Tertiary     lipgloss.Color // third accent
+	TertiaryDim  lipgloss.Color
 	Warning      lipgloss.Color
 	Rare         lipgloss.Color // rare highlight
 	Highlight    lipgloss.Color // interactive element highlight
@@ -69,16 +71,16 @@ type Theme struct {
 	RedDim       lipgloss.Color
 
 	// Status blocks
-	BlockDefault   lipgloss.Color // fg for default status block
-	BlockDefaultBg lipgloss.Color
-	BlockInfo      lipgloss.Color
-	BlockInfoBg    lipgloss.Color
-	BlockMode1     lipgloss.Color
-	BlockMode1Bg   lipgloss.Color
-	BlockMode2     lipgloss.Color
-	BlockMode2Bg   lipgloss.Color
-	BlockMuted     lipgloss.Color
-	BlockMutedBg   lipgloss.Color
+	BlockDefault     lipgloss.Color // fg for default status block
+	BlockDefaultBg   lipgloss.Color
+	BlockInfo        lipgloss.Color
+	BlockInfoBg      lipgloss.Color
+	BlockSecondary   lipgloss.Color
+	BlockSecondaryBg lipgloss.Color
+	BlockTertiary    lipgloss.Color
+	BlockTertiaryBg  lipgloss.Color
+	BlockMuted       lipgloss.Color
+	BlockMutedBg     lipgloss.Color
 }
 
 // -- Theme Definitions ----------
@@ -92,7 +94,7 @@ var ThemeModern = Theme{
 	BgPanel:     lipgloss.Color("#10111a"),
 	BgPanelDim:  lipgloss.Color("#0a0b10"),
 	BgModal:     lipgloss.Color("#10111a"),
-	BgModalList: lipgloss.Color("#10111a"),
+	BgModalList: lipgloss.Color("#1c1e25"),
 	Border:      lipgloss.Color("#2a2b3d"),
 	BorderDim:   lipgloss.Color("#1a1b26"),
 
@@ -101,18 +103,20 @@ var ThemeModern = Theme{
 	TextDim:       lipgloss.Color("#3e4451"),
 	TextDark:      lipgloss.Color("#151516"),
 	Muted:         lipgloss.Color("#4b5263"),
+	MutedModal:    lipgloss.Color("#4b5263"),
 	ModalText:     lipgloss.Color("#b5bdcb"),
 	ModalTextDark: lipgloss.Color("#4b5263"),
 	Cursor:        lipgloss.Color("#abb2bf"),
 	CursorText:    lipgloss.Color("#151516"),
 
 	Primary:      lipgloss.Color(ColorGold),
+	PrimaryModal: lipgloss.Color(ColorGold),
 	PrimaryDim:   lipgloss.Color(ColorGoldDim),
 	PrimaryDark:  lipgloss.Color(ColorGoldDark),
 	Secondary:    lipgloss.Color(ColorBlue),
 	SecondaryDim: lipgloss.Color(ColorBlueDark),
-	Positive:     lipgloss.Color(ColorGreenLight),
-	PositiveDim:  lipgloss.Color(ColorGreenDark),
+	Tertiary:     lipgloss.Color(ColorGreenLight),
+	TertiaryDim:  lipgloss.Color(ColorGreenDark),
 	Warning:      lipgloss.Color(ColorRedLight),
 	Rare:         lipgloss.Color(ColorPink),
 	Highlight:    lipgloss.Color(ColorOrange),
@@ -121,76 +125,194 @@ var ThemeModern = Theme{
 	Red:          lipgloss.Color(ColorRed),
 	RedDim:       lipgloss.Color(ColorRedDark),
 
-	BlockDefault:   lipgloss.Color(ColorPurple),
-	BlockDefaultBg: lipgloss.Color(ColorPurpleDark),
-	BlockInfo:      lipgloss.Color(ColorGold),
-	BlockInfoBg:    lipgloss.Color(ColorGoldDark),
-	BlockMode1:     lipgloss.Color(ColorBlue),
-	BlockMode1Bg:   lipgloss.Color(ColorBlueDark),
-	BlockMode2:     lipgloss.Color(ColorGreenLight),
-	BlockMode2Bg:   lipgloss.Color(ColorGreenDark),
-	BlockMuted:     lipgloss.Color(ColorGrey),
-	BlockMutedBg:   lipgloss.Color(ColorGreyDark),
+	BlockDefault:     lipgloss.Color(ColorPurple),
+	BlockDefaultBg:   lipgloss.Color(ColorPurpleDark),
+	BlockInfo:        lipgloss.Color(ColorGold),
+	BlockInfoBg:      lipgloss.Color(ColorGoldDark),
+	BlockSecondary:   lipgloss.Color(ColorBlue),
+	BlockSecondaryBg: lipgloss.Color(ColorBlueDark),
+	BlockTertiary:    lipgloss.Color(ColorGreenLight),
+	BlockTertiaryBg:  lipgloss.Color(ColorGreenDark),
+	BlockMuted:       lipgloss.Color(ColorGrey),
+	BlockMutedBg:     lipgloss.Color(ColorGreyDark),
 }
 
 // ThemeClassic = original RuneScape palette
 var ThemeClassic = Theme{
-	Bg:          lipgloss.Color("#1a1208"),
-	BgDim:       lipgloss.Color("#110d05"),
-	BgInput:     lipgloss.Color("#2e2010"),
-	BgInputDim:  lipgloss.Color("#1e1508"),
-	BgPanel:     lipgloss.Color("#150f06"),
-	BgPanelDim:  lipgloss.Color("#0e0904"),
-	BgModal:     lipgloss.Color("#150f06"),
-	BgModalList: lipgloss.Color("#2e2010"),
-	Border:      lipgloss.Color("#4a3520"),
-	BorderDim:   lipgloss.Color("#2e1f0f"),
+	Bg:          lipgloss.Color("#1b140b"),
+	BgDim:       lipgloss.Color("#120c05"),
+	BgInput:     lipgloss.Color("#2a1d0f"),
+	BgInputDim:  lipgloss.Color("#1c1208"),
+	BgPanel:     lipgloss.Color("#171006"),
+	BgPanelDim:  lipgloss.Color("#100a04"),
+	BgModal:     lipgloss.Color("#171006"),
+	BgModalList: lipgloss.Color("#22170c"),
+	Border:      lipgloss.Color("#6b4e2a"),
+	BorderDim:   lipgloss.Color("#3a2915"),
 
-	Text:          lipgloss.Color("#c7a96b"),
-	TextLight:     lipgloss.Color("#a08050"),
-	TextDim:       lipgloss.Color("#4a3520"),
-	TextDark:      lipgloss.Color("#0e0a04"),
-	Muted:         lipgloss.Color("#6b4e2a"),
-	ModalText:     lipgloss.Color("#dabc81"),
-	ModalTextDark: lipgloss.Color("#6b4e2a"),
-	Cursor:        lipgloss.Color("#c7a96b"),
-	CursorText:    lipgloss.Color("#0e0a04"),
+	Text:          lipgloss.Color("#e2c98a"),
+	TextLight:     lipgloss.Color("#c2a86d"),
+	TextDim:       lipgloss.Color("#5c4324"),
+	TextDark:      lipgloss.Color("#0c0804"),
+	Muted:         lipgloss.Color("#7a5c35"),
+	MutedModal:    lipgloss.Color("#7a5c35"),
+	ModalText:     lipgloss.Color("#f0d79c"),
+	ModalTextDark: lipgloss.Color("#5c4324"),
+	Cursor:        lipgloss.Color("#f0d79c"),
+	CursorText:    lipgloss.Color("#0c0804"),
 
-	Primary:      lipgloss.Color("#c8a951"),
-	PrimaryDim:   lipgloss.Color("#7a6535"),
-	PrimaryDark:  lipgloss.Color("#3d2c1f"),
-	Secondary:    lipgloss.Color("#7aaa6a"),
-	SecondaryDim: lipgloss.Color("#2e3a1e"),
-	Positive:     lipgloss.Color("#98c379"),
-	PositiveDim:  lipgloss.Color("#2e3a1e"),
-	Warning:      lipgloss.Color("#cc5533"),
-	Rare:         lipgloss.Color("#cc77aa"),
-	Highlight:    lipgloss.Color("#d4a84b"),
-	Green:        lipgloss.Color(ColorGreen),
-	GreenDim:     lipgloss.Color(ColorGreenDark),
-	Red:          lipgloss.Color(ColorRed),
-	RedDim:       lipgloss.Color(ColorRedDark),
+	Primary:      lipgloss.Color("#d4af37"),
+	PrimaryModal: lipgloss.Color("#d4af37"),
+	PrimaryDim:   lipgloss.Color("#8a6d2e"),
+	PrimaryDark:  lipgloss.Color("#4a3718"),
+	Secondary:    lipgloss.Color("#6faa6f"),
+	SecondaryDim: lipgloss.Color("#2d3d20"),
+	Tertiary:     lipgloss.Color("#8fd18f"),
+	TertiaryDim:  lipgloss.Color("#2d3d20"),
+	Warning:      lipgloss.Color("#b94a3c"),
+	Rare:         lipgloss.Color("#c77dff"),
+	Highlight:    lipgloss.Color("#e2c98a"),
+	Green:        lipgloss.Color("#6faa6f"),
+	GreenDim:     lipgloss.Color("#2d3d20"),
+	Red:          lipgloss.Color("#b94a3c"),
+	RedDim:       lipgloss.Color("#4a1e18"),
 
-	BlockDefault:   lipgloss.Color("#c7a96b"),
-	BlockDefaultBg: lipgloss.Color("#3d2c1f"),
-	BlockInfo:      lipgloss.Color("#c8a951"),
-	BlockInfoBg:    lipgloss.Color("#3d2c1f"),
-	BlockMode1:     lipgloss.Color("#7aaa6a"),
-	BlockMode1Bg:   lipgloss.Color("#2e3a1e"),
-	BlockMode2:     lipgloss.Color("#98c379"),
-	BlockMode2Bg:   lipgloss.Color("#2e3a1e"),
-	BlockMuted:     lipgloss.Color("#8a8070"),
-	BlockMutedBg:   lipgloss.Color("#2e2010"),
+	BlockDefault:     lipgloss.Color("#e2c98a"),
+	BlockDefaultBg:   lipgloss.Color("#4a3718"),
+	BlockInfo:        lipgloss.Color("#d4af37"),
+	BlockInfoBg:      lipgloss.Color("#4a3718"),
+	BlockSecondary:   lipgloss.Color("#6faa6f"),
+	BlockSecondaryBg: lipgloss.Color("#2d3d20"),
+	BlockTertiary:    lipgloss.Color("#8fd18f"),
+	BlockTertiaryBg:  lipgloss.Color("#2d3d20"),
+	BlockMuted:       lipgloss.Color("#a08963"),
+	BlockMutedBg:     lipgloss.Color("#2a1d0f"),
+}
+
+// ThemeRuneLite = dark RuneLite palette
+var ThemeRuneLite = Theme{
+	Bg:          lipgloss.Color("#0f1115"),
+	BgDim:       lipgloss.Color("#0a0c10"),
+	BgInput:     lipgloss.Color("#1b1f26"),
+	BgInputDim:  lipgloss.Color("#141820"),
+	BgPanel:     lipgloss.Color("#12151b"),
+	BgPanelDim:  lipgloss.Color("#0d1015"),
+	BgModal:     lipgloss.Color("#12151b"),
+	BgModalList: lipgloss.Color("#1b1f26"),
+	Border:      lipgloss.Color("#2b313d"),
+	BorderDim:   lipgloss.Color("#1b1f26"),
+
+	Text:          lipgloss.Color("#cfd6e6"),
+	TextLight:     lipgloss.Color("#a9b1c6"),
+	TextDim:       lipgloss.Color("#3a4150"),
+	TextDark:      lipgloss.Color("#0f1115"),
+	Muted:         lipgloss.Color("#4f5666"),
+	MutedModal:    lipgloss.Color("#4f5666"),
+	ModalText:     lipgloss.Color("#dbe2f3"),
+	ModalTextDark: lipgloss.Color("#4f5666"),
+	Cursor:        lipgloss.Color("#00d4ff"),
+	CursorText:    lipgloss.Color("#0f1115"),
+
+	Primary:      lipgloss.Color("#00d4ff"),
+	PrimaryModal: lipgloss.Color("#00d4ff"),
+	PrimaryDim:   lipgloss.Color("#007a99"),
+	PrimaryDark:  lipgloss.Color("#003844"),
+	Secondary:    lipgloss.Color("#ffb454"),
+	SecondaryDim: lipgloss.Color("#6a4a1b"),
+	Tertiary:     lipgloss.Color("#6adf91"),
+	TertiaryDim:  lipgloss.Color("#1f3d2e"),
+	Warning:      lipgloss.Color("#ff5f56"),
+	Rare:         lipgloss.Color("#c792ea"),
+	Highlight:    lipgloss.Color("#ffb454"),
+	Green:        lipgloss.Color("#6adf91"),
+	GreenDim:     lipgloss.Color("#1f3d2e"),
+	Red:          lipgloss.Color("#ff5f56"),
+	RedDim:       lipgloss.Color("#4a1e1c"),
+
+	BlockDefault:     lipgloss.Color("#00d4ff"),
+	BlockDefaultBg:   lipgloss.Color("#003844"),
+	BlockInfo:        lipgloss.Color("#ffb454"),
+	BlockInfoBg:      lipgloss.Color("#6a4a1b"),
+	BlockSecondary:   lipgloss.Color("#ffb454"),
+	BlockSecondaryBg: lipgloss.Color("#6a4a1b"),
+	BlockTertiary:    lipgloss.Color("#6adf91"),
+	BlockTertiaryBg:  lipgloss.Color("#1f3d2e"),
+	BlockMuted:       lipgloss.Color("#8b92a6"),
+	BlockMutedBg:     lipgloss.Color("#1b1f26"),
+}
+
+// ThemeZamorak = red Zammy palette
+var ThemeZamorak = Theme{
+	Bg:          lipgloss.Color("#120c0c"),
+	BgDim:       lipgloss.Color("#0c0808"),
+	BgPanel:     lipgloss.Color("#160f0f"),
+	BgPanelDim:  lipgloss.Color("#0e0909"),
+	BgInput:     lipgloss.Color("#1c1414"),
+	BgInputDim:  lipgloss.Color("#140e0e"),
+	BgModal:     lipgloss.Color("#160f0f"),
+	BgModalList: lipgloss.Color("#1c1414"),
+	Border:      lipgloss.Color("#5a1e1e"),
+	BorderDim:   lipgloss.Color("#2b0f0f"),
+
+	Text:          lipgloss.Color("#e6d6d6"),
+	TextLight:     lipgloss.Color("#caa"),
+	TextDim:       lipgloss.Color("#402020"),
+	TextDark:      lipgloss.Color("#120c0c"),
+	Muted:         lipgloss.Color("#6a3a3a"),
+	MutedModal:    lipgloss.Color("#6a3a3a"),
+	ModalText:     lipgloss.Color("#f2e6e6"),
+	ModalTextDark: lipgloss.Color("#6a3a3a"),
+	Cursor:        lipgloss.Color("#ff4d4d"),
+	CursorText:    lipgloss.Color("#120c0c"),
+
+	Primary:      lipgloss.Color("#ff4d4d"),
+	PrimaryModal: lipgloss.Color("#ff4d4d"),
+	PrimaryDim:   lipgloss.Color("#8a1f1f"),
+	PrimaryDark:  lipgloss.Color("#4a0f0f"),
+	Secondary:    lipgloss.Color("#d4af37"),
+	SecondaryDim: lipgloss.Color("#4a3718"),
+	Tertiary:     lipgloss.Color("#6adf91"),
+	TertiaryDim:  lipgloss.Color("#1f3d2e"),
+	Warning:      lipgloss.Color("#ffb454"),
+	Rare:         lipgloss.Color("#c792ea"),
+	Highlight:    lipgloss.Color("#ff4d4d"),
+	Green:        lipgloss.Color("#6adf91"),
+	GreenDim:     lipgloss.Color("#1f3d2e"),
+	Red:          lipgloss.Color("#ff4d4d"),
+	RedDim:       lipgloss.Color("#4a1e1c"),
+
+	BlockDefault:     lipgloss.Color("#ff4d4d"),
+	BlockDefaultBg:   lipgloss.Color("#4a1e1c"),
+	BlockInfo:        lipgloss.Color("#ff4d4d"),
+	BlockInfoBg:      lipgloss.Color("#4a1e1c"),
+	BlockSecondary:   lipgloss.Color("#d4af37"),
+	BlockSecondaryBg: lipgloss.Color("#4a3718"),
+	BlockTertiary:    lipgloss.Color("#6adf91"),
+	BlockTertiaryBg:  lipgloss.Color("#1f3d2e"),
+	BlockMuted:       lipgloss.Color("#5a1e1e"),
+	BlockMutedBg:     lipgloss.Color("#261b1b"),
 }
 
 // Themes is the registry for config file / runtime lookup
 var Themes = map[string]Theme{
-	"modern":  ThemeModern,
-	"classic": ThemeClassic,
+	"modern":   ThemeModern,
+	"classic":  ThemeClassic,
+	"runelite": ThemeRuneLite,
+	"zamorak":  ThemeZamorak,
 }
+
+// -- Config theme ----------
 
 // DefaultTheme is used when no config value is set
 const DefaultTheme = "modern"
+
+// loadThemeFromConfig loads a theme from a key
+func loadThemeFromConfig(name string) Theme {
+	if t, ok := Themes[name]; ok {
+		return t
+	}
+	return Themes[DefaultTheme]
+}
 
 // -- Dimmed ----------
 
@@ -210,34 +332,36 @@ func (t Theme) Dimmed() Theme {
 		TextDim:       t.TextDim,
 		TextDark:      t.TextDark,
 		Muted:         t.TextDim,
+		MutedModal:    t.Muted,
 		ModalText:     t.ModalText,     // modal color, leave undimmed
 		ModalTextDark: t.ModalTextDark, // modal color, leave undimmed
 		Cursor:        t.BgInputDim,    // hide cursor,
 		CursorText:    t.TextDim,       // hide cursor,
 
 		Primary:      t.PrimaryDim,
+		PrimaryModal: t.PrimaryModal,
 		PrimaryDim:   t.PrimaryDim,
 		PrimaryDark:  t.PrimaryDark,
 		Secondary:    t.SecondaryDim,
 		SecondaryDim: t.SecondaryDim,
-		Positive:     t.PositiveDim,
-		PositiveDim:  t.PositiveDim,
+		Tertiary:     t.TertiaryDim,
+		TertiaryDim:  t.TertiaryDim,
 		Warning:      t.Muted,
 		Rare:         t.Muted,
 		Highlight:    t.Muted,
 		Green:        t.GreenDim,
 		Red:          t.RedDim,
 
-		BlockDefault:   t.Muted,
-		BlockDefaultBg: t.BgDim,
-		BlockInfo:      t.Muted,
-		BlockInfoBg:    t.BgDim,
-		BlockMode1:     t.Muted,
-		BlockMode1Bg:   t.BgDim,
-		BlockMode2:     t.Muted,
-		BlockMode2Bg:   t.BgDim,
-		BlockMuted:     t.Muted,
-		BlockMutedBg:   t.BgDim,
+		BlockDefault:     t.Muted,
+		BlockDefaultBg:   t.BgDim,
+		BlockInfo:        t.Muted,
+		BlockInfoBg:      t.BgDim,
+		BlockSecondary:   t.Muted,
+		BlockSecondaryBg: t.BgDim,
+		BlockTertiary:    t.Muted,
+		BlockTertiaryBg:  t.BgDim,
+		BlockMuted:       t.Muted,
+		BlockMutedBg:     t.BgDim,
 	}
 }
 
@@ -346,6 +470,24 @@ func (t Theme) InputCursor() lipgloss.Style {
 		Foreground(t.CursorText)
 }
 
+func (t Theme) InputPromptModal() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(t.ModalText).
+		Background(t.BgModal)
+}
+
+func (t Theme) InputPlaceholderModal() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Foreground(t.ModalTextDark).
+		Background(t.BgModal)
+}
+
+func (t Theme) InputCursorModal() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Background(t.ModalText).
+		Foreground(t.ModalTextDark)
+}
+
 // -- Sidebar ----------
 
 func (t Theme) SidebarItem() lipgloss.Style {
@@ -390,7 +532,6 @@ func (t Theme) StatLabel() lipgloss.Style {
 		Background(t.Bg).
 		Bold(true).
 		Italic(true).
-		Faint(true).
 		Width(18)
 }
 
@@ -406,8 +547,7 @@ func (t Theme) StatValue() lipgloss.Style {
 		Foreground(t.Primary).
 		Background(t.Bg).
 		Bold(true).
-		Italic(true).
-		Faint(true)
+		Italic(true)
 }
 
 func (t Theme) StatValueActive() lipgloss.Style {
@@ -469,14 +609,14 @@ func (t Theme) StatusBlockInfo() lipgloss.Style {
 
 func (t Theme) StatusBlockMode1() lipgloss.Style {
 	return lipgloss.NewStyle().
-		Background(t.BlockMode1Bg).
-		Foreground(t.BlockMode1)
+		Background(t.BlockSecondaryBg).
+		Foreground(t.BlockSecondary)
 }
 
 func (t Theme) StatusBlockMode2() lipgloss.Style {
 	return lipgloss.NewStyle().
-		Background(t.BlockMode2Bg).
-		Foreground(t.BlockMode2)
+		Background(t.BlockTertiaryBg).
+		Foreground(t.BlockTertiary)
 }
 
 func (t Theme) StatusBlockMuted() lipgloss.Style {
@@ -504,14 +644,4 @@ func (t Theme) HelpMuted() lipgloss.Style {
 func (t Theme) Error() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Foreground(t.Warning)
-}
-
-// -- Config theme ----------
-
-// dummy function to load from config file. Will make work later
-func loadThemeFromConfig(name string) Theme {
-	if t, ok := Themes[name]; ok {
-		return t
-	}
-	return ThemeModern
 }

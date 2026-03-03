@@ -12,11 +12,6 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
-// Theme selection
-var ActiveTheme Theme
-
-// var ActiveTheme = loadThemeFromConfig("modern") // manual for now. change to cfg.Theme later
-
 // Tab indices
 const (
 	TabHome    = 0
@@ -28,9 +23,20 @@ const (
 
 var tabNames = []string{"HOME", "XP", "MONSTER", "ITEM", "PLAYER"}
 
-// NavigateMsg is sent by child tabs to request a tab switch
-type NavigateMsg struct {
+// Theme selection
+var ActiveTheme Theme
+
+// ChangeThemeMsg is sent by an input command to request a theme switch
+type ChangeThemeMsg struct {
+	theme Theme
+	name  string
+}
+type OpenThemeMsg struct{}
+
+// CommandMsg is sent by child tabs to request command execution
+type CommandMsg struct {
 	Tab    int
+	Slug   string
 	Query  string
 	Action CommandAction
 }
@@ -99,6 +105,7 @@ type AppModel struct {
 	activePreset  string
 	statusContext StatusContext
 	palette       PaletteModel
+	themeList     ThemeModel
 	theme         Theme
 }
 
@@ -110,6 +117,7 @@ func NewAppModel() AppModel {
 		home:      NewHomeModel(),
 		xp:        NewXPModel(),
 		palette:   NewPaletteModel(),
+		themeList: NewThemeModel(),
 		theme:     t,
 	}
 }
@@ -132,9 +140,17 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.palette, cmd = a.palette.Update(msg)
 		return a, cmd
 	}
+	if a.themeList.visible {
+		switch msg.(type) {
+		case ChangeThemeMsg:
+			// Bubble up command, let parent handle it
+		default:
+			a.themeList, cmd = a.themeList.Update(msg)
+			return a, cmd
+		}
+	}
 
 	switch msg := msg.(type) {
-
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
@@ -142,14 +158,28 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.home.SetSize(msg.Width, a.contentHeight())
 		a.xp.SetSize(msg.Width, a.contentHeight())
 		a.palette = a.palette.SetSize(msg.Width, msg.Height)
+		a.themeList = a.themeList.SetSize(msg.Width, msg.Height)
 		return a, nil
 
-	case NavigateMsg:
+	case CommandMsg:
 		a.activeTab = msg.Tab
 		if msg.Tab == TabXP && msg.Query != "" {
 			a.xp.SetQuery(msg.Query)
 		}
 		return a, nil
+
+	case OpenThemeMsg:
+		a.themeList, _ = a.themeList.Open()
+		return a, nil
+
+	case ChangeThemeMsg:
+		a.theme = msg.theme
+		ActiveTheme = a.theme
+		// Show success toast
+		a.toast = components.NewToast().
+			SetMessage(strings.ToLower(msg.name) + " theme set").
+			SetStyle(components.ToastSuccess)
+		return a, a.toast.Show()
 
 	case LoadPlayerMsg:
 		a.player.Loading = true
@@ -233,6 +263,10 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.palette, _ = a.palette.Open()
 			return a, nil
 
+		case "ctrl+t":
+			a.themeList, _ = a.themeList.Open()
+			return a, nil
+
 		// Global tab switching
 		case "alt+1":
 			a.activeTab = TabHome
@@ -278,7 +312,7 @@ func (a AppModel) updateActiveTab(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a AppModel) View() tea.View {
 	// Set background colors to dim style if overlay
-	if a.palette.visible {
+	if a.palette.visible || a.themeList.visible {
 		ActiveTheme = a.theme.Dimmed()
 		defer func() { ActiveTheme = a.theme }()
 	}
@@ -310,9 +344,21 @@ func (a AppModel) View() tea.View {
 		full = components.PlaceOverlay(x, 1, toastStr, full, a.width)
 	}
 
-	// Overlay command palette if visible
+	// Overlay modal if visible
 	if a.palette.visible {
 		modal := a.palette.View()
+
+		// center everything
+		full = components.PlaceOverlay(
+			(a.width-lipgloss.Width(modal))/2,
+			(a.height-lipgloss.Height(modal))/2,
+			modal,
+			full,
+			a.width,
+		)
+	}
+	if a.themeList.visible {
+		modal := a.themeList.View()
 
 		// center everything
 		full = components.PlaceOverlay(

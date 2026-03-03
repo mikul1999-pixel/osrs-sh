@@ -38,9 +38,12 @@ func NewPaletteModel() PaletteModel {
 
 		// Dropdown
 		Commands:        buildInputCommands(),
+		CommandPrefix:   "/",
 		DropdownVisible: 17,
+		DropdownTrigger: '/',
 		DropdownAccent:  lipgloss.Color(ActiveTheme.BgModalList),
-		ForceDropdown:   true,
+		ForceDropdown:   false,
+		FilterDropdown:  true,
 	})
 	input.Focus()
 	return PaletteModel{input: input, help: ""}
@@ -73,6 +76,7 @@ func (p PaletteModel) SetSize(w, h int) PaletteModel {
 }
 
 func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
+	p.syncInputTheme()
 	var cmd tea.Cmd
 
 	// Force cursor blink by always forwarding messages to child
@@ -92,7 +96,7 @@ func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
 			if selected := p.input.CommitDropdownSelection(false); selected != nil {
 				if selected.Args == "" {
 					p.visible = false
-					return p, executeCommand(*selected)
+					return p, parseExecuteCommand(*selected)
 				}
 				p.input.SetValue(insertCommand(*selected))
 				p.help = p.inputHelpText()
@@ -101,13 +105,12 @@ func (p PaletteModel) Update(msg tea.Msg) (PaletteModel, tea.Cmd) {
 			nav, _ := parseCommand(p.input.Value())
 			if nav != nil {
 				p.visible = false
-				return p, executeNav(*nav)
+				return p, executeCommand(*nav)
 			}
 			return p, nil
 		}
 	}
 
-	// p.input, cmd = p.input.Update(msg)
 	p.help = p.inputHelpText()
 	return p, cmd
 }
@@ -116,6 +119,7 @@ func (p PaletteModel) View() string {
 	if !p.visible {
 		return ""
 	}
+	p.syncInputTheme()
 
 	pad := lipgloss.NewStyle().
 		Background(lipgloss.Color(ActiveTheme.BgModal)).
@@ -157,4 +161,15 @@ func (p *PaletteModel) inputHelpText() string {
 		AfterCmd: "",
 	}
 	return CommandHelp(p.input.Value(), bg, defaultHelp)
+}
+
+// syncInputTheme ensures input box styling can render in View and update
+func (p *PaletteModel) syncInputTheme() {
+	p.input.SetAccentFocused(lipgloss.Color(ActiveTheme.PrimaryModal))
+	p.input.SetAccentUnfocused(lipgloss.Color(ActiveTheme.PrimaryModal))
+	p.input.SetBackground(lipgloss.Color(ActiveTheme.BgModal))
+	p.input.SetTextStyle(ActiveTheme.InputPromptModal())
+	p.input.SetPlaceholderStyle(ActiveTheme.InputPlaceholderModal())
+	p.input.SetCursorStyle(ActiveTheme.InputCursorModal())
+	p.input.SetDropdownAccent(lipgloss.Color(ActiveTheme.BgModal))
 }

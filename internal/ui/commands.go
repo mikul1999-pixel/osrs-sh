@@ -11,6 +11,20 @@ import (
 
 // -- Helper File for Commands ----------
 
+// CommandNav describes a slash command that navigates tabs
+type CommandNav struct {
+	cmd         string
+	description string
+	keybind     string
+}
+
+var CommandNavMenu = []CommandNav{
+	{"/xp", "skill xp calculator", "2"},
+	{"/npc", "monster stats & drops", "3"},
+	{"/item", "item info & ge price", "4"},
+	{"/rsn", "player lookup", "5"},
+}
+
 // CommandAction describes what a command does beyond tab navigation
 type CommandAction int
 
@@ -36,12 +50,12 @@ var commands = []command{
 	{slug: "/xp", args: "lv1 lvl2", desc: "XP between two levels", targetTab: TabXP, action: ActionLookup},
 	{slug: "/item", args: "name", desc: "Item price & info", targetTab: TabItem, action: ActionLookup},
 	{slug: "/npc", args: "name", desc: "Monster stats & drops", targetTab: TabMonster, action: ActionLookup},
-	{slug: "/wiki", args: "query", desc: "Open OSRS wiki", targetTab: -1, action: ActionLookup},
+	{slug: "/wiki", args: "query", desc: "Open OSRS wiki", targetTab: 0, action: ActionLookup},
 
 	// Bookmarks
-	{slug: "/rsn-add", args: "username", desc: "Bookmark a username", targetTab: -1, action: ActionBookmark},
-	{slug: "/rsn-rm", args: "username", desc: "Remove a bookmark", targetTab: -1, action: ActionBookmark},
-	{slug: "/rsn-list", args: "", desc: "Show saved usernames", targetTab: -1, action: ActionBookmark},
+	{slug: "/rsn-add", args: "username", desc: "Bookmark a username", targetTab: 0, action: ActionBookmark},
+	{slug: "/rsn-rm", args: "username", desc: "Remove a bookmark", targetTab: 0, action: ActionBookmark},
+	{slug: "/rsn-list", args: "", desc: "Show saved usernames", targetTab: 0, action: ActionBookmark},
 
 	// Navigate (no-arg tab switchers)
 	{slug: "/xp", args: "", desc: "Switch to xp tab", targetTab: TabXP, action: ActionNavigate},
@@ -50,11 +64,11 @@ var commands = []command{
 	{slug: "/rsn", args: "", desc: "Switch to rsn tab", targetTab: TabPlayer, action: ActionNavigate},
 
 	// Session
-	{slug: "/history", args: "", desc: "Show recent commands", targetTab: -1, action: ActionSession},
-	{slug: "/clear", args: "", desc: "Clear current output", targetTab: -1, action: ActionSession},
-	{slug: "/new", args: "", desc: "New session", targetTab: -1, action: ActionSession},
-	{slug: "/theme", args: "", desc: "Cycle themes", targetTab: -1, action: ActionSession},
-	{slug: "/exit", args: "", desc: "Exit the app", targetTab: -1, action: ActionSession},
+	{slug: "/history", args: "", desc: "Show recent commands", targetTab: 0, action: ActionSession},
+	{slug: "/clear", args: "", desc: "Clear current output", targetTab: 0, action: ActionSession},
+	{slug: "/new", args: "", desc: "New session", targetTab: 0, action: ActionSession},
+	{slug: "/theme", args: "", desc: "Cycle themes", targetTab: 0, action: ActionSession},
+	{slug: "/exit", args: "", desc: "Exit the app", targetTab: 0, action: ActionSession},
 }
 
 func buildInputCommands() []components.InputCommand {
@@ -79,8 +93,8 @@ type HelpLine struct {
 
 // -- Helpers ----------
 
-// parseCommand parses the input and returns a NavigateMsg or an error string.
-func parseCommand(raw string) (*NavigateMsg, string) {
+// parseCommand parses the input and returns a CommandMsg or an error string.
+func parseCommand(raw string) (*CommandMsg, string) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil, ""
@@ -106,7 +120,7 @@ func parseCommand(raw string) (*NavigateMsg, string) {
 		if !hasArgs && c.args != "" {
 			continue
 		}
-		return &NavigateMsg{Tab: c.targetTab, Query: query, Action: c.action}, ""
+		return &CommandMsg{Tab: c.targetTab, Slug: slug, Query: query, Action: c.action}, ""
 	}
 
 	return nil, fmt.Sprintf("unknown command %q — try /xp, /npc, /item, /rsn", slug)
@@ -116,23 +130,26 @@ func insertCommand(cmd components.InputCommand) string {
 	return "/" + cmd.Key + " "
 }
 
-// executeCommand handles immediate execution for no arg commands
-func executeCommand(cmd components.InputCommand) tea.Cmd {
-	nav, _ := parseCommandFromInput("/" + cmd.Key)
-	if nav == nil {
+// parseExecuteCommand handles immediate execution for no arg commands by parsing input + executing
+func parseExecuteCommand(cmd components.InputCommand) tea.Cmd {
+	exec, _ := parseCommandFromInput("/" + cmd.Key)
+	if exec == nil {
 		return nil
 	}
-	return func() tea.Msg { return *nav }
+	if exec.Action == ActionSession { // ActionSession have no args, but are not navigation cmds
+		return executeCommand(*exec)
+	}
+	return func() tea.Msg { return *exec }
 }
 
-// executeNav intercepts and handles command in priority order
-func executeNav(nav NavigateMsg) tea.Cmd {
-	switch nav.Action {
+// executeCommand handles commands in priority order
+func executeCommand(cmd CommandMsg) tea.Cmd {
+	switch cmd.Action {
 	case ActionLookup:
-		switch nav.Tab {
+		switch cmd.Tab {
 		case TabPlayer:
-			if nav.Query != "" {
-				return func() tea.Msg { return LoadPlayerMsg{RSN: nav.Query} }
+			if cmd.Query != "" {
+				return func() tea.Msg { return LoadPlayerMsg{RSN: cmd.Query} }
 			}
 		case TabXP:
 			// add later
@@ -144,14 +161,25 @@ func executeNav(nav NavigateMsg) tea.Cmd {
 	case ActionBookmark:
 		// add later
 	case ActionSession:
-		// /history, /clear, /theme, /exit ...add later
+		switch cmd.Slug {
+		case "/history":
+			// add later
+		case "/clear":
+			// add later
+		case "/exit":
+			return tea.Quit
+		case "/theme":
+			return func() tea.Msg { return OpenThemeMsg{} }
+		default:
+			return nil
+		}
 	}
 	// ActionNavigate or unhandled lookup
-	return func() tea.Msg { return nav }
+	return func() tea.Msg { return cmd }
 }
 
 // parseCommandFromInput helps executeCommand call parseCommand
-func parseCommandFromInput(raw string) (*NavigateMsg, string) {
+func parseCommandFromInput(raw string) (*CommandMsg, string) {
 	raw = strings.TrimSpace(raw)
 	parts := strings.Fields(raw)
 	if len(parts) == 0 {
@@ -160,7 +188,7 @@ func parseCommandFromInput(raw string) (*NavigateMsg, string) {
 	slug := strings.ToLower(parts[0])
 	for _, c := range commands {
 		if slug == c.slug && c.args == "" {
-			return &NavigateMsg{Tab: c.targetTab, Query: "", Action: c.action}, ""
+			return &CommandMsg{Tab: c.targetTab, Slug: slug, Query: "", Action: c.action}, ""
 		}
 	}
 	return nil, fmt.Sprintf("unknown command %q", slug)

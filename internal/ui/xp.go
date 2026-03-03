@@ -539,7 +539,7 @@ func (m XPModel) renderStats(w int, statsPanel *components.Panel) string {
 
 	case modeTarget:
 		modeBar = "Target"
-		modeColor = string(ActiveTheme.Positive)
+		modeColor = string(ActiveTheme.Tertiary)
 		m.input.SetAccentFocused(lipgloss.Color(modeColor))
 
 		sb.WriteString(ActiveTheme.StatHeader().Render("GOALS") + "\n")

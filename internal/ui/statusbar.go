@@ -45,7 +45,8 @@ func (a AppModel) renderPlayerBlock() string {
 			frame = a.spinner.View()
 		}
 		return ActiveTheme.StatusLine().Render(
-			" " + ActiveTheme.StatusLine().Render(frame+" loading ") +
+			" " + ActiveTheme.StatusLine().Render(frame) +
+				ActiveTheme.StatusLine().Render(" loading ") +
 				ActiveTheme.StatusLine().Render(strings.ToLower(a.player.RSN)+"..."),
 		)
 	}
@@ -100,5 +101,5 @@ func (a AppModel) renderGlobalActions() string {
 	return Space(3) +
 		ActiveTheme.StatusKey().Render("ctrl+p") + ActiveTheme.StatusVal().Render(" commands") + Space(3) +
 		ActiveTheme.StatusKey().Render("ctrl+t") + ActiveTheme.StatusVal().Render(" themes") + Space(3) +
-		ActiveTheme.StatusKey().Render("ctrl+c") + ActiveTheme.StatusVal().Render(" quit") + " "
+		ActiveTheme.StatusKey().Render("ctrl+c") + ActiveTheme.StatusVal().Render(" quit") + Space(1)
 }
