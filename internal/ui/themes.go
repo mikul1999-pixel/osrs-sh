@@ -1,13 +1,14 @@
 package ui
 
 import (
-	"sort"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
+
+// -- Theme Picker Modal ----------
 
 const (
 	themeWidth  = 52
@@ -16,28 +17,23 @@ const (
 
 // ThemeModel is the theme picker modal overlay
 type ThemeModel struct {
-	input   components.Input
-	help    string
-	visible bool
-	width   int
-	height  int
+	input         components.Input
+	help          string
+	visible       bool
+	selectedTheme string
+	width         int
+	height        int
 }
 
-func buildInputThemes() []components.InputCommand {
-	keys := make([]string, 0, len(Themes))
-	for key := range Themes {
-		keys = append(keys, key)
+func buildInputThemes(selected string) []components.InputCommand {
+	out := make([]components.InputCommand, 0, len(knownThemes))
+	// Prepend default theme first
+	out = append(out, components.InputCommand{Key: selected})
+	for _, name := range knownThemes {
+		if name != selected {
+			out = append(out, components.InputCommand{Key: name})
+		}
 	}
-
-	// Sort alphabetically
-	sort.Strings(keys)
-	out := make([]components.InputCommand, 0, len(keys))
-	for _, key := range keys {
-		out = append(out, components.InputCommand{
-			Key: key,
-		})
-	}
-
 	return out
 }
 
@@ -59,7 +55,7 @@ func NewThemeModel() ThemeModel {
 
 		// Dropdown
 		CommandPrefix:   "",
-		Commands:        buildInputThemes(),
+		Commands:        buildInputThemes(DefaultTheme),
 		DropdownVisible: 10,
 		DropdownAccent:  lipgloss.Color(ActiveTheme.BgModalList),
 		ForceDropdown:   true,
@@ -110,17 +106,20 @@ func (t ThemeModel) Update(msg tea.Msg) (ThemeModel, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
+			t.syncCommandList(t.selectedTheme)
 			return t.Close(), nil
 		// case "enter":
 		case "enter", "up", "down":
 			if selected := t.input.CommitDropdownSelection(false); selected != nil {
 				t.input.SetValue("/" + selected.Key)
 				cmd = setTheme(selected.Key)
+				t.selectedTheme = selected.Key
 				t.input.Reset()
 				return t, cmd
 			}
 			cleanValue := strings.ReplaceAll(t.input.Value(), "/", "")
 			cmd = setTheme(cleanValue)
+			t.selectedTheme = cleanValue
 			t.input.Reset()
 			return t, cmd
 		}
@@ -166,7 +165,13 @@ func (t ThemeModel) View() string {
 // -- Helpers ----------
 
 func setTheme(themeVal string) tea.Cmd {
-	return func() tea.Msg { return ChangeThemeMsg{theme: loadThemeFromConfig(themeVal), name: themeVal} }
+	return func() tea.Msg { return ChangeThemeMsg{theme: loadTheme(themeVal), name: themeVal} }
+}
+
+// syncCommandList pins the selected theme to the top of the picker
+func (t *ThemeModel) syncCommandList(themeVal string) {
+	list := buildInputThemes(themeVal)
+	t.input.SetCommands(list)
 }
 
 // syncInputTheme ensures input box styling can render in View and update

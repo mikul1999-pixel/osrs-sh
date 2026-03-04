@@ -630,7 +630,7 @@ func statRow(label, value string) string {
 func statRowMode(label, value string, color string) string {
 	lipglossColor := color
 	if color == "" {
-		lipglossColor = ColorGold
+		lipglossColor = ColorStore["ColorGold"]
 	}
 	return ActiveTheme.StatLabelActive().Render(label+":") +
 		ActiveTheme.StatValueActive().Foreground(lipgloss.Color(lipglossColor)).Render(value)

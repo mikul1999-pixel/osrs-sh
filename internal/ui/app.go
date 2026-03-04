@@ -12,6 +12,8 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
+// -- Parent Bubbletea Model ----------
+
 // Tab indices
 const (
 	TabHome    = 0
@@ -110,7 +112,7 @@ type AppModel struct {
 }
 
 func NewAppModel() AppModel {
-	t := loadThemeFromConfig("modern") // manual for now. change to cfg.Theme later
+	t := loadTheme(DefaultTheme)
 	ActiveTheme = t
 	return AppModel{
 		activeTab: TabHome,
@@ -175,11 +177,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ChangeThemeMsg:
 		a.theme = msg.theme
 		ActiveTheme = a.theme
-		// Show success toast
-		a.toast = components.NewToast().
-			SetMessage(strings.ToLower(msg.name) + " theme set").
-			SetStyle(components.ToastSuccess)
-		return a, a.toast.Show()
+		return a, nil
 
 	case LoadPlayerMsg:
 		a.player.Loading = true

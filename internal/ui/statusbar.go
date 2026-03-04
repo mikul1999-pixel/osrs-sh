@@ -8,6 +8,8 @@ import (
 	coreXP "github.com/mikul1999-pixel/osrs-sh/internal/core/xp"
 )
 
+// -- Bottom Status Bar ----------
+
 // renderStatusBar renders two lines of the status bar
 func (a AppModel) renderStatusBar() string {
 	line1 := a.renderStatusLine1()

@@ -179,6 +179,7 @@ func (m *Input) SetTextStyle(s lipgloss.Style)        { m.opts.TextStyle = s }
 func (m *Input) SetPlaceholderStyle(s lipgloss.Style) { m.opts.PlaceholderStyle = s }
 func (m *Input) SetCursorStyle(s lipgloss.Style)      { m.opts.CursorStyle = s }
 func (m *Input) SetDropdownAccent(c lipgloss.Color)   { m.opts.DropdownAccent = c }
+func (m *Input) SetCommands(cmd []InputCommand)       { m.opts.Commands = cmd }
 
 // CommitDropdownSelection should be called by the parent when user presses enter
 func (m *Input) CommitDropdownSelection(close bool) *InputCommand {

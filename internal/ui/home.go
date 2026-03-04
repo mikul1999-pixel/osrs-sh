@@ -9,6 +9,8 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
+// -- Home Tab ----------
+
 // ASCII logo
 // Upper half bright, lower half dimmed
 var logoLines = render.GetLogo()

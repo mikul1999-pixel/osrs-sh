@@ -6,6 +6,8 @@ import (
 	"github.com/mikul1999-pixel/osrs-sh/internal/ui/components"
 )
 
+// -- Command Palette Modal ----------
+
 const (
 	paletteWidth  = 64
 	paletteHeight = 22
@@ -171,5 +173,5 @@ func (p *PaletteModel) syncInputTheme() {
 	p.input.SetTextStyle(ActiveTheme.InputPromptModal())
 	p.input.SetPlaceholderStyle(ActiveTheme.InputPlaceholderModal())
 	p.input.SetCursorStyle(ActiveTheme.InputCursorModal())
-	p.input.SetDropdownAccent(lipgloss.Color(ActiveTheme.BgModal))
+	p.input.SetDropdownAccent(lipgloss.Color(ActiveTheme.BgModalList))
 }

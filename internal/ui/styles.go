@@ -1,31 +1,40 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"log"
+	"reflect"
+
+	"github.com/charmbracelet/lipgloss"
+	th "github.com/mikul1999-pixel/osrs-sh/internal/themes"
+)
+
+// -- Theme on Startup ----------
+const DefaultTheme = "modern"
 
 // -- Raw Colors ----------
 
-const (
-	ColorBlack      = "#000000"
-	ColorGold       = "#c8a951"
-	ColorGoldDim    = "#7a6535"
-	ColorGoldDark   = "#3d2c1f"
-	ColorGreen      = "#57a854"
-	ColorGreenLight = "#98c379"
-	ColorGreenDark  = "#2e3a4d"
-	ColorBlue       = "#3b98d4"
-	ColorBlueDark   = "#2e3a4d"
-	ColorPink       = "#ff66b2"
-	ColorPurple     = "#b49dd8"
-	ColorPurpleDark = "#373349"
-	ColorGrey       = "#8a93b2"
-	ColorGreyDark   = "#2a2b3d"
-	ColorRed        = "#c94f4f"
-	ColorRedLight   = "#e06c75"
-	ColorRedDark    = "#4d2929"
-	ColorOrange     = "#d19a66"
-)
+var ColorStore = map[string]string{
+	"ColorBlack":      "#000000",
+	"ColorGold":       "#c8a951",
+	"ColorGoldDim":    "#7a6535",
+	"ColorGoldDark":   "#3d2c1f",
+	"ColorGreen":      "#57a854",
+	"ColorGreenLight": "#98c379",
+	"ColorGreenDark":  "#2e3a4d",
+	"ColorBlue":       "#3b98d4",
+	"ColorBlueDark":   "#2e3a4d",
+	"ColorPink":       "#ff66b2",
+	"ColorPurple":     "#b49dd8",
+	"ColorPurpleDark": "#373349",
+	"ColorGrey":       "#8a93b2",
+	"ColorGreyDark":   "#2a2b3d",
+	"ColorRed":        "#c94f4f",
+	"ColorRedLight":   "#e06c75",
+	"ColorRedDark":    "#4d2929",
+	"ColorOrange":     "#d19a66",
+}
 
-// -- Theme ----------
+// -- Theme Struct ----------
 
 // Theme holds all semantic colors for a given visual theme
 type Theme struct {
@@ -83,235 +92,52 @@ type Theme struct {
 	BlockMutedBg     lipgloss.Color
 }
 
-// -- Theme Definitions ----------
+// -- Load Preset Themes ----------
 
-// ThemeModern = app default palette
-var ThemeModern = Theme{
-	Bg:          lipgloss.Color("#13141a"),
-	BgDim:       lipgloss.Color("#0d0d12"),
-	BgInput:     lipgloss.Color("#2a2b3d"),
-	BgInputDim:  lipgloss.Color("#1a1b2a"),
-	BgPanel:     lipgloss.Color("#10111a"),
-	BgPanelDim:  lipgloss.Color("#0a0b10"),
-	BgModal:     lipgloss.Color("#10111a"),
-	BgModalList: lipgloss.Color("#1c1e25"),
-	Border:      lipgloss.Color("#2a2b3d"),
-	BorderDim:   lipgloss.Color("#1a1b26"),
+// Registry for runtime lookup
+var knownThemes = []string{"modern", "classic", "desert", "runelite", "guthix", "saradomin", "zamorak"}
+var themeCache = map[string]Theme{}
 
-	Text:          lipgloss.Color("#abb2bf"),
-	TextLight:     lipgloss.Color("#90969f"),
-	TextDim:       lipgloss.Color("#3e4451"),
-	TextDark:      lipgloss.Color("#151516"),
-	Muted:         lipgloss.Color("#4b5263"),
-	MutedModal:    lipgloss.Color("#4b5263"),
-	ModalText:     lipgloss.Color("#b5bdcb"),
-	ModalTextDark: lipgloss.Color("#4b5263"),
-	Cursor:        lipgloss.Color("#abb2bf"),
-	CursorText:    lipgloss.Color("#151516"),
+// Helpers for loading jsons
+func resolveColor(val string) lipgloss.Color {
+	if hex, ok := ColorStore[val]; ok {
+		return lipgloss.Color(hex)
+	}
+	return lipgloss.Color(val)
+}
+func themeFromMap(m map[string]string) Theme {
+	var t Theme
+	v := reflect.ValueOf(&t).Elem()
 
-	Primary:      lipgloss.Color(ColorGold),
-	PrimaryModal: lipgloss.Color(ColorGold),
-	PrimaryDim:   lipgloss.Color(ColorGoldDim),
-	PrimaryDark:  lipgloss.Color(ColorGoldDark),
-	Secondary:    lipgloss.Color(ColorBlue),
-	SecondaryDim: lipgloss.Color(ColorBlueDark),
-	Tertiary:     lipgloss.Color(ColorGreenLight),
-	TertiaryDim:  lipgloss.Color(ColorGreenDark),
-	Warning:      lipgloss.Color(ColorRedLight),
-	Rare:         lipgloss.Color(ColorPink),
-	Highlight:    lipgloss.Color(ColorOrange),
-	Green:        lipgloss.Color(ColorGreen),
-	GreenDim:     lipgloss.Color(ColorGreenDark),
-	Red:          lipgloss.Color(ColorRed),
-	RedDim:       lipgloss.Color(ColorRedDark),
+	for key, val := range m {
+		// Replace constant names with hex values
+		field := v.FieldByName(key)
+		if !field.IsValid() || !field.CanSet() {
+			log.Printf("warning: unknown theme key %q - skipping", key)
+			continue
+		}
+		field.Set(reflect.ValueOf(resolveColor(val)))
+	}
 
-	BlockDefault:     lipgloss.Color(ColorPurple),
-	BlockDefaultBg:   lipgloss.Color(ColorPurpleDark),
-	BlockInfo:        lipgloss.Color(ColorGold),
-	BlockInfoBg:      lipgloss.Color(ColorGoldDark),
-	BlockSecondary:   lipgloss.Color(ColorBlue),
-	BlockSecondaryBg: lipgloss.Color(ColorBlueDark),
-	BlockTertiary:    lipgloss.Color(ColorGreenLight),
-	BlockTertiaryBg:  lipgloss.Color(ColorGreenDark),
-	BlockMuted:       lipgloss.Color(ColorGrey),
-	BlockMutedBg:     lipgloss.Color(ColorGreyDark),
+	return t
 }
 
-// ThemeClassic = original RuneScape palette
-var ThemeClassic = Theme{
-	Bg:          lipgloss.Color("#1b140b"),
-	BgDim:       lipgloss.Color("#120c05"),
-	BgInput:     lipgloss.Color("#2a1d0f"),
-	BgInputDim:  lipgloss.Color("#1c1208"),
-	BgPanel:     lipgloss.Color("#171006"),
-	BgPanelDim:  lipgloss.Color("#100a04"),
-	BgModal:     lipgloss.Color("#171006"),
-	BgModalList: lipgloss.Color("#22170c"),
-	Border:      lipgloss.Color("#6b4e2a"),
-	BorderDim:   lipgloss.Color("#3a2915"),
-
-	Text:          lipgloss.Color("#e2c98a"),
-	TextLight:     lipgloss.Color("#c2a86d"),
-	TextDim:       lipgloss.Color("#5c4324"),
-	TextDark:      lipgloss.Color("#0c0804"),
-	Muted:         lipgloss.Color("#7a5c35"),
-	MutedModal:    lipgloss.Color("#7a5c35"),
-	ModalText:     lipgloss.Color("#f0d79c"),
-	ModalTextDark: lipgloss.Color("#5c4324"),
-	Cursor:        lipgloss.Color("#f0d79c"),
-	CursorText:    lipgloss.Color("#0c0804"),
-
-	Primary:      lipgloss.Color("#d4af37"),
-	PrimaryModal: lipgloss.Color("#d4af37"),
-	PrimaryDim:   lipgloss.Color("#8a6d2e"),
-	PrimaryDark:  lipgloss.Color("#4a3718"),
-	Secondary:    lipgloss.Color("#6faa6f"),
-	SecondaryDim: lipgloss.Color("#2d3d20"),
-	Tertiary:     lipgloss.Color("#8fd18f"),
-	TertiaryDim:  lipgloss.Color("#2d3d20"),
-	Warning:      lipgloss.Color("#b94a3c"),
-	Rare:         lipgloss.Color("#c77dff"),
-	Highlight:    lipgloss.Color("#e2c98a"),
-	Green:        lipgloss.Color("#6faa6f"),
-	GreenDim:     lipgloss.Color("#2d3d20"),
-	Red:          lipgloss.Color("#b94a3c"),
-	RedDim:       lipgloss.Color("#4a1e18"),
-
-	BlockDefault:     lipgloss.Color("#e2c98a"),
-	BlockDefaultBg:   lipgloss.Color("#4a3718"),
-	BlockInfo:        lipgloss.Color("#d4af37"),
-	BlockInfoBg:      lipgloss.Color("#4a3718"),
-	BlockSecondary:   lipgloss.Color("#6faa6f"),
-	BlockSecondaryBg: lipgloss.Color("#2d3d20"),
-	BlockTertiary:    lipgloss.Color("#8fd18f"),
-	BlockTertiaryBg:  lipgloss.Color("#2d3d20"),
-	BlockMuted:       lipgloss.Color("#a08963"),
-	BlockMutedBg:     lipgloss.Color("#2a1d0f"),
-}
-
-// ThemeRuneLite = dark RuneLite palette
-var ThemeRuneLite = Theme{
-	Bg:          lipgloss.Color("#0f1115"),
-	BgDim:       lipgloss.Color("#0a0c10"),
-	BgInput:     lipgloss.Color("#1b1f26"),
-	BgInputDim:  lipgloss.Color("#141820"),
-	BgPanel:     lipgloss.Color("#12151b"),
-	BgPanelDim:  lipgloss.Color("#0d1015"),
-	BgModal:     lipgloss.Color("#12151b"),
-	BgModalList: lipgloss.Color("#1b1f26"),
-	Border:      lipgloss.Color("#2b313d"),
-	BorderDim:   lipgloss.Color("#1b1f26"),
-
-	Text:          lipgloss.Color("#cfd6e6"),
-	TextLight:     lipgloss.Color("#a9b1c6"),
-	TextDim:       lipgloss.Color("#3a4150"),
-	TextDark:      lipgloss.Color("#0f1115"),
-	Muted:         lipgloss.Color("#4f5666"),
-	MutedModal:    lipgloss.Color("#4f5666"),
-	ModalText:     lipgloss.Color("#dbe2f3"),
-	ModalTextDark: lipgloss.Color("#4f5666"),
-	Cursor:        lipgloss.Color("#00d4ff"),
-	CursorText:    lipgloss.Color("#0f1115"),
-
-	Primary:      lipgloss.Color("#00d4ff"),
-	PrimaryModal: lipgloss.Color("#00d4ff"),
-	PrimaryDim:   lipgloss.Color("#007a99"),
-	PrimaryDark:  lipgloss.Color("#003844"),
-	Secondary:    lipgloss.Color("#ffb454"),
-	SecondaryDim: lipgloss.Color("#6a4a1b"),
-	Tertiary:     lipgloss.Color("#6adf91"),
-	TertiaryDim:  lipgloss.Color("#1f3d2e"),
-	Warning:      lipgloss.Color("#ff5f56"),
-	Rare:         lipgloss.Color("#c792ea"),
-	Highlight:    lipgloss.Color("#ffb454"),
-	Green:        lipgloss.Color("#6adf91"),
-	GreenDim:     lipgloss.Color("#1f3d2e"),
-	Red:          lipgloss.Color("#ff5f56"),
-	RedDim:       lipgloss.Color("#4a1e1c"),
-
-	BlockDefault:     lipgloss.Color("#00d4ff"),
-	BlockDefaultBg:   lipgloss.Color("#003844"),
-	BlockInfo:        lipgloss.Color("#ffb454"),
-	BlockInfoBg:      lipgloss.Color("#6a4a1b"),
-	BlockSecondary:   lipgloss.Color("#ffb454"),
-	BlockSecondaryBg: lipgloss.Color("#6a4a1b"),
-	BlockTertiary:    lipgloss.Color("#6adf91"),
-	BlockTertiaryBg:  lipgloss.Color("#1f3d2e"),
-	BlockMuted:       lipgloss.Color("#8b92a6"),
-	BlockMutedBg:     lipgloss.Color("#1b1f26"),
-}
-
-// ThemeZamorak = red Zammy palette
-var ThemeZamorak = Theme{
-	Bg:          lipgloss.Color("#120c0c"),
-	BgDim:       lipgloss.Color("#0c0808"),
-	BgPanel:     lipgloss.Color("#160f0f"),
-	BgPanelDim:  lipgloss.Color("#0e0909"),
-	BgInput:     lipgloss.Color("#1c1414"),
-	BgInputDim:  lipgloss.Color("#140e0e"),
-	BgModal:     lipgloss.Color("#160f0f"),
-	BgModalList: lipgloss.Color("#1c1414"),
-	Border:      lipgloss.Color("#5a1e1e"),
-	BorderDim:   lipgloss.Color("#2b0f0f"),
-
-	Text:          lipgloss.Color("#e6d6d6"),
-	TextLight:     lipgloss.Color("#caa"),
-	TextDim:       lipgloss.Color("#402020"),
-	TextDark:      lipgloss.Color("#120c0c"),
-	Muted:         lipgloss.Color("#6a3a3a"),
-	MutedModal:    lipgloss.Color("#6a3a3a"),
-	ModalText:     lipgloss.Color("#f2e6e6"),
-	ModalTextDark: lipgloss.Color("#6a3a3a"),
-	Cursor:        lipgloss.Color("#ff4d4d"),
-	CursorText:    lipgloss.Color("#120c0c"),
-
-	Primary:      lipgloss.Color("#ff4d4d"),
-	PrimaryModal: lipgloss.Color("#ff4d4d"),
-	PrimaryDim:   lipgloss.Color("#8a1f1f"),
-	PrimaryDark:  lipgloss.Color("#4a0f0f"),
-	Secondary:    lipgloss.Color("#d4af37"),
-	SecondaryDim: lipgloss.Color("#4a3718"),
-	Tertiary:     lipgloss.Color("#6adf91"),
-	TertiaryDim:  lipgloss.Color("#1f3d2e"),
-	Warning:      lipgloss.Color("#ffb454"),
-	Rare:         lipgloss.Color("#c792ea"),
-	Highlight:    lipgloss.Color("#ff4d4d"),
-	Green:        lipgloss.Color("#6adf91"),
-	GreenDim:     lipgloss.Color("#1f3d2e"),
-	Red:          lipgloss.Color("#ff4d4d"),
-	RedDim:       lipgloss.Color("#4a1e1c"),
-
-	BlockDefault:     lipgloss.Color("#ff4d4d"),
-	BlockDefaultBg:   lipgloss.Color("#4a1e1c"),
-	BlockInfo:        lipgloss.Color("#ff4d4d"),
-	BlockInfoBg:      lipgloss.Color("#4a1e1c"),
-	BlockSecondary:   lipgloss.Color("#d4af37"),
-	BlockSecondaryBg: lipgloss.Color("#4a3718"),
-	BlockTertiary:    lipgloss.Color("#6adf91"),
-	BlockTertiaryBg:  lipgloss.Color("#1f3d2e"),
-	BlockMuted:       lipgloss.Color("#5a1e1e"),
-	BlockMutedBg:     lipgloss.Color("#261b1b"),
-}
-
-// Themes is the registry for config file / runtime lookup
-var Themes = map[string]Theme{
-	"modern":   ThemeModern,
-	"classic":  ThemeClassic,
-	"runelite": ThemeRuneLite,
-	"zamorak":  ThemeZamorak,
-}
-
-// -- Config theme ----------
-
-// DefaultTheme is used when no config value is set
-const DefaultTheme = "modern"
-
-// loadThemeFromConfig loads a theme from a key
-func loadThemeFromConfig(name string) Theme {
-	if t, ok := Themes[name]; ok {
+// loadTheme gets a theme from its json
+func loadTheme(name string) Theme {
+	if t, ok := themeCache[name]; ok {
 		return t
 	}
-	return Themes[DefaultTheme]
+	m, err := th.LoadThemeJson(name)
+	if err != nil {
+		log.Printf("warning: could not load theme %q: %v — falling back to %q", name, err, DefaultTheme)
+		if name == DefaultTheme {
+			panic("failed to load default theme")
+		}
+		return loadTheme(DefaultTheme)
+	}
+	t := themeFromMap(m)
+	themeCache[name] = t // cache the theme
+	return t
 }
 
 // -- Dimmed ----------
