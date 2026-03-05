@@ -14,27 +14,27 @@ var Presets = []Preset{
 		Hotkey: "q",
 		Targets: [24]int{
 			50, // ATK
-			58, // STR
+			60, // STR
 			65, // DEF
 			62, // RNG
 			50, // PRA
 			75, // MAG
 			60, // RC
-			50, // CON
+			70, // CON
 			50, // HP
 			70, // AGI
 			70, // HRB
 			72, // THV
 			70, // CRF
-			69, // FLT
+			60, // FLT
 			70, // SMI
 			75, // FMK
-			75, // WC
+			71, // WC
 			70, // COK
 			72, // MIN
 			62, // FSH
-			69, // HNT
-			73, // FRM
+			70, // HNT
+			75, // FRM
 			69, // SLY
 			45, // SAI
 		},
@@ -43,60 +43,60 @@ var Presets = []Preset{
 		Name:   "diary cape",
 		Hotkey: "e",
 		Targets: [24]int{
-			42, // ATK
-			70, // STR  (Fremennik Elite unboosted)
+			50, // ATK
+			76, // STR
 			70, // DEF
 			70, // RNG
-			85, // PRA  (Fremennik Elite)
-			94, // MAG  (Kandarin Elite: 96 Magic... 94 unboosted min)
-			86, // RC   (Karamja Elite: 91 with outfit, 86 minimum)
-			78, // CON  (Falador Elite)
-			50, // HP
-			60, // AGI
-			90, // HRB  (Morytania Elite)
-			96, // THV  (Morytania Elite unboosted)
-			54, // CRF
-			50, // FLT
-			68, // SMI
-			50, // FMK
-			60, // WC
-			53, // COK
-			70, // MIN
-			76, // FSH  (Morytania Elite: bare-handed shark)
-			69, // HNT  (Western Elite: 1000 Chompy kills)
-			65, // FRM
-			93, // SLY  (Kourend Elite: hydra)
-			22, // SAI
+			85, // PRA
+			96, // MAG
+			91, // RC
+			78, // CON
+			70, // HP
+			90, // AGI
+			90, // HRB
+			91, // THV
+			85, // CRF
+			95, // FLT
+			91, // SMI
+			85, // FMK
+			90, // WC
+			95, // COK
+			85, // MIN
+			96, // FSH
+			70, // HNT
+			85, // FRM
+			95, // SLY
+			45, // SAI
 		},
 	},
 	{
 		Name:   "master clues",
 		Hotkey: "r",
 		Targets: [24]int{
-			78, // ATK  (Dragon sq shield equip)
-			85, // STR
-			75, // DEF
-			70, // RNG
-			70, // PRA
-			85, // MAG
-			55, // RC
-			66, // CON
-			60, // HP
-			60, // AGI
-			78, // HRB  (Sherlock challenge)
-			75, // THV  (Sherlock challenge)
-			75, // CRF  (Sherlock challenge)
+			75, // ATK
+			50, // STR
+			70, // DEF
+			81, // RNG
+			50, // PRA
+			90, // MAG
+			77, // RC
+			72, // CON
+			70, // HP
+			80, // AGI
+			87, // HRB  (Sherlock challenge)
+			85, // THV  (Sherlock challenge)
+			87, // CRF  (Sherlock challenge)
 			81, // FLT  (Sherlock challenge)
-			85, // SMI  (Sherlock challenge)
-			93, // FMK  (Sherlock challenge)
-			75, // WC   (Sherlock challenge)
-			95, // COK  (Sherlock challenge)
-			72, // MIN  (Sherlock challenge)
-			82, // FSH  (Sherlock challenge)
-			80, // HNT  (Sherlock challenge)
-			78, // FRM  (Sherlock challenge)
-			88, // SLY  (Sherlock challenge)
-			1,  // SAI  (no requirement)
+			88, // SMI  (Sherlock challenge)
+			90, // FMK  (Sherlock challenge)
+			90, // WC   (Sherlock challenge)
+			72, // COK  (Sherlock challenge)
+			85, // MIN  (Sherlock challenge)
+			87, // FSH  (Sherlock challenge)
+			79, // HNT  (Sherlock challenge)
+			90, // FRM  (Sherlock challenge)
+			85, // SLY  (Sherlock challenge)
+			81, // SAI
 		},
 	},
 }
